@@ -12,6 +12,8 @@ class WishService {
   Future<void> createWish({
     required String partnerId,
     required String title,
+    String? price,
+    required int heartRating,
     required String reason,
     required DateTime scheduledAt,
   }) async {
@@ -22,6 +24,8 @@ class WishService {
       requesterId: _myUid,
       partnerId: partnerId,
       title: title,
+      price: price,
+      heartRating: heartRating,
       reason: reason,
       scheduledAt: scheduledAt,
       status: WishStatus.pending,
@@ -36,7 +40,6 @@ class WishService {
     return _db
         .collection('wishes')
         .where('requesterId', isEqualTo: _myUid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(WishModel.fromDoc).toList());
   }
@@ -47,7 +50,6 @@ class WishService {
         .collection('wishes')
         .where('partnerId', isEqualTo: _myUid)
         .where('status', isEqualTo: 'pending')
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(WishModel.fromDoc).toList());
   }
