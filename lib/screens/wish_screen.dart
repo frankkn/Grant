@@ -143,7 +143,7 @@ class _WishScreenState extends State<WishScreen> {
       WishStatus.approved => ('通過', Colors.green),
       WishStatus.rejected => ('駁回', Colors.red),
     };
-    return Chip(label: Text(label), backgroundColor: color.withOpacity(0.2));
+    return Chip(label: Text(label), backgroundColor: color.withValues(alpha: 0.2));
   }
 }
 

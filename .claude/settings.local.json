@@ -4,7 +4,8 @@
       "PowerShell(flutter --version)",
       "PowerShell(Get-ChildItem \"C:\\\\\", \"$env:LOCALAPPDATA\", \"$env:USERPROFILE\" -Filter \"flutter\" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 5 FullName)",
       "PowerShell(Get-ChildItem \"C:\\\\src\", \"C:\\\\flutter\", \"C:\\\\tools\", \"$env:USERPROFILE\\\\flutter\", \"$env:USERPROFILE\\\\development\" -ErrorAction SilentlyContinue | Select-Object FullName)",
-      "Read(//c/Users/FRANK2~1/AppData/Local/Temp/claude/c--Users-frank2-yang-Desktop-Grant/bfe29042-c748-49a2-9f9a-dcbb2945a33d/tasks/**)"
+      "Read(//c/Users/FRANK2~1/AppData/Local/Temp/claude/c--Users-frank2-yang-Desktop-Grant/bfe29042-c748-49a2-9f9a-dcbb2945a33d/tasks/**)",
+      "PowerShell(Start-Process \"ms-settings:developers\")"
     ]
   }
 }

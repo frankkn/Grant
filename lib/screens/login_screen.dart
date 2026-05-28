@@ -15,10 +15,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   bool _isRegister = false;
+  bool _isLoading = false;
   String? _error;
 
   Future<void> _submit() async {
-    setState(() => _error = null);
+    setState(() { _error = null; _isLoading = true; });
     try {
       if (_isRegister) {
         await _auth.register(
@@ -32,14 +33,32 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordCtrl.text,
         );
       }
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
-      }
+      _goHome();
     } catch (e) {
       setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() { _error = null; _isLoading = true; });
+    try {
+      final user = await _auth.signInWithGoogle();
+      if (user != null) _goHome();
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _goHome() {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
     }
   }
 
@@ -70,15 +89,34 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 24),
             if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            ElevatedButton(
-              onPressed: _submit,
-              child: Text(_isRegister ? '註冊' : '登入'),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _isRegister = !_isRegister),
-              child: Text(_isRegister ? '已有帳號？登入' : '沒有帳號？註冊'),
-            ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(_error!, style: const TextStyle(color: Colors.red)),
+              ),
+            if (_isLoading)
+              const CircularProgressIndicator()
+            else ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  child: Text(_isRegister ? '註冊' : '登入'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.login),
+                  label: const Text('使用 Google 登入'),
+                  onPressed: _googleSignIn,
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _isRegister = !_isRegister),
+                child: Text(_isRegister ? '已有帳號？登入' : '沒有帳號？註冊'),
+              ),
+            ],
           ],
         ),
       ),
