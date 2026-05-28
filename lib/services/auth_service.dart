@@ -6,7 +6,9 @@ import '../models/user_model.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    clientId: '593151530958-msd84e8ln372r4c7m2l2o3t8o18uj3f0.apps.googleusercontent.com',
+  );
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
