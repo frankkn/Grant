@@ -14,31 +14,49 @@ class _WishScreenState extends State<WishScreen> {
   final _wishService = WishService();
   final _titleCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _productUrlCtrl = TextEditingController();
+  final _descriptionCtrl = TextEditingController();
   final _reasonCtrl = TextEditingController();
   int _heartRating = 0;
   DateTime _scheduledAt = DateTime.now().add(const Duration(days: 1));
   String? _message;
 
   Future<void> _submit() async {
-    if (_titleCtrl.text.trim().isEmpty || _reasonCtrl.text.trim().isEmpty) {
-      setState(() => _message = '請填寫標題與理由');
-      return;
+    final title = _titleCtrl.text.trim();
+    final price = _priceCtrl.text.trim();
+    final productUrl = _productUrlCtrl.text.trim();
+    final description = _descriptionCtrl.text.trim();
+    final reason = _reasonCtrl.text.trim();
+
+    if (title.isEmpty) { setState(() => _message = '請填寫「許下我的願望」'); return; }
+    if (price.isEmpty) { setState(() => _message = '請填寫「費用參考」'); return; }
+    if (_heartRating == 0) { setState(() => _message = '請選擇「心動指數」'); return; }
+    if (description.isEmpty) { setState(() => _message = '請填寫「商品描述」'); return; }
+    if (reason.isEmpty) { setState(() => _message = '請填寫「我的理由」'); return; }
+
+    if (productUrl.isNotEmpty) {
+      final uri = Uri.tryParse(productUrl);
+      if (uri == null || !uri.hasScheme || (!uri.scheme.startsWith('http'))) {
+        setState(() => _message = '商品網址格式不正確，請輸入完整網址（例如 https://...）');
+        return;
+      }
     }
-    if (_heartRating == 0) {
-      setState(() => _message = '請選擇你有多想要');
-      return;
-    }
+
     try {
       await _wishService.createWish(
         partnerId: widget.partnerId,
-        title: _titleCtrl.text.trim(),
-        price: _priceCtrl.text.trim().isEmpty ? null : _priceCtrl.text.trim(),
+        title: title,
+        price: price,
         heartRating: _heartRating,
-        reason: _reasonCtrl.text.trim(),
+        productUrl: productUrl.isEmpty ? null : productUrl,
+        description: description,
+        reason: reason,
         scheduledAt: _scheduledAt,
       );
       _titleCtrl.clear();
       _priceCtrl.clear();
+      _productUrlCtrl.clear();
+      _descriptionCtrl.clear();
       _reasonCtrl.clear();
       setState(() { _heartRating = 0; _message = '許願已送出！'; });
     } catch (e) {
@@ -71,26 +89,24 @@ class _WishScreenState extends State<WishScreen> {
   }
 
   Widget _buildSendTab() {
-    return Padding(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text('許下我的願望', style: TextStyle(fontSize: 14, color: Colors.grey)),
+      children: [
+          const Text('許下我的願望 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 8),
           TextField(
             controller: _titleCtrl,
             decoration: const InputDecoration(hintText: '我想要...'),
           ),
           const SizedBox(height: 24),
-          const Text('費用參考', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const Text('費用參考 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 8),
           TextField(
             controller: _priceCtrl,
             decoration: const InputDecoration(hintText: '例如：NT\$500 或 無價'),
           ),
           const SizedBox(height: 24),
-          const Text('心動指數 ♡', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const Text('心動指數 ♡ *', style: TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 8),
           Row(
             children: List.generate(5, (i) {
@@ -109,7 +125,35 @@ class _WishScreenState extends State<WishScreen> {
             }),
           ),
           const SizedBox(height: 24),
-          const Text('我的理由', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _productUrlCtrl,
+            decoration: const InputDecoration(hintText: 'https://...'),
+            keyboardType: TextInputType.url,
+          ),
+          const SizedBox(height: 24),
+          const Text('商品描述 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _descriptionCtrl,
+            decoration: InputDecoration(
+              hintText: '描述一下這個商品...',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.pinkAccent),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Colors.pink, width: 2),
+              ),
+            ),
+            minLines: 3,
+            maxLines: 6,
+          ),
+          const SizedBox(height: 24),
+          const Text('我的理由 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 8),
           TextField(
             controller: _reasonCtrl,
@@ -148,38 +192,38 @@ class _WishScreenState extends State<WishScreen> {
             ),
           const Divider(height: 32),
           const Text('我的許願清單', style: TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(
-            child: StreamBuilder<List<WishModel>>(
-              stream: _wishService.watchMyWishes(),
-              builder: (_, snap) {
-                if (snap.hasError) return Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red));
-                if (!snap.hasData) return const Center(child: Text('載入中...'));
-                if (snap.data!.isEmpty) return const Center(child: Text('還沒有許願'));
-                return ListView.builder(
-                  itemCount: snap.data!.length,
-                  itemBuilder: (_, i) {
-                    final w = snap.data![i];
-                    return ListTile(
-                      title: Text(w.title),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (w.price != null) Text('價格：${w.price}'),
-                          Row(children: List.generate(5, (i) => Icon(
-                            i < w.heartRating ? Icons.favorite : Icons.favorite_border,
-                            color: Colors.pink, size: 14,
-                          ))),
-                        ],
-                      ),
-                      trailing: _statusChip(w.status),
-                    );
-                  },
-                );
-              },
-            ),
+          const SizedBox(height: 8),
+          StreamBuilder<List<WishModel>>(
+            stream: _wishService.watchMyWishes(),
+            builder: (_, snap) {
+              if (snap.hasError) return Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red));
+              if (!snap.hasData) return const Center(child: Text('載入中...'));
+              if (snap.data!.isEmpty) return const Center(child: Text('還沒有許願'));
+              return ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: snap.data!.length,
+                itemBuilder: (_, i) {
+                  final w = snap.data![i];
+                  return ListTile(
+                    title: Text(w.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('價格：${w.price}'),
+                        Row(children: List.generate(5, (i) => Icon(
+                          i < w.heartRating ? Icons.favorite : Icons.favorite_border,
+                          color: Colors.pink, size: 14,
+                        ))),
+                      ],
+                    ),
+                    trailing: _statusChip(w.status),
+                  );
+                },
+              );
+            },
           ),
         ],
-      ),
     );
   }
 

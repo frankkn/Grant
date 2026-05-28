@@ -12,8 +12,10 @@ class WishService {
   Future<void> createWish({
     required String partnerId,
     required String title,
-    String? price,
+    required String price,
     required int heartRating,
+    String? productUrl,
+    String? description,
     required String reason,
     required DateTime scheduledAt,
   }) async {
@@ -26,6 +28,8 @@ class WishService {
       title: title,
       price: price,
       heartRating: heartRating,
+      productUrl: productUrl,
+      description: description,
       reason: reason,
       scheduledAt: scheduledAt,
       status: WishStatus.pending,

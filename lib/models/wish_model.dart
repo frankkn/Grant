@@ -7,8 +7,10 @@ class WishModel {
   final String requesterId;
   final String partnerId;
   final String title;
-  final String? price;
+  final String price;
   final int heartRating;
+  final String? productUrl;
+  final String? description;
   final String reason;
   final DateTime scheduledAt;
   final WishStatus status;
@@ -21,8 +23,10 @@ class WishModel {
     required this.requesterId,
     required this.partnerId,
     required this.title,
-    this.price,
+    required this.price,
     this.heartRating = 0,
+    this.productUrl,
+    this.description,
     required this.reason,
     required this.scheduledAt,
     required this.status,
@@ -38,8 +42,10 @@ class WishModel {
       requesterId: data['requesterId'] as String,
       partnerId: data['partnerId'] as String,
       title: data['title'] as String,
-      price: data['price'] as String?,
+      price: (data['price'] as String?) ?? '',
       heartRating: (data['heartRating'] as int?) ?? 0,
+      productUrl: data['productUrl'] as String?,
+      description: data['description'] as String?,
       reason: data['reason'] as String,
       scheduledAt: (data['scheduledAt'] as Timestamp).toDate(),
       status: WishStatus.values.byName(data['status'] as String),
@@ -55,6 +61,8 @@ class WishModel {
         'title': title,
         'price': price,
         'heartRating': heartRating,
+        'productUrl': productUrl,
+        'description': description,
         'reason': reason,
         'scheduledAt': Timestamp.fromDate(scheduledAt),
         'status': status.name,
@@ -68,6 +76,10 @@ class WishModel {
         requesterId: requesterId,
         partnerId: partnerId,
         title: title,
+        price: price,
+        heartRating: heartRating,
+        productUrl: productUrl,
+        description: description,
         reason: reason,
         scheduledAt: scheduledAt,
         status: status ?? this.status,
