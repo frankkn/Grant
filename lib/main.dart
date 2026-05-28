@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/name_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,7 +24,27 @@ class GrantApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.pinkAccent),
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          if (snap.data == null) return const LoginScreen();
+          return FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance.collection('users').doc(snap.data!.uid).get(),
+            builder: (context, userSnap) {
+              if (!userSnap.hasData) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              final data = userSnap.data!.data() as Map<String, dynamic>?;
+              final name = data?['displayName'] as String?;
+              if (name == null || name.trim().isEmpty) return const NameSetupScreen();
+              return const HomeScreen();
+            },
+          );
+        },
+      ),
     );
   }
 }
