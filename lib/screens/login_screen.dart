@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _nameCtrl = TextEditingController();
   bool _isRegister = false;
   bool _isLoading = false;
+  bool _rememberMe = true;
   String? _error;
 
   Future<void> _submit() async {
@@ -80,14 +81,26 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _emailCtrl,
               decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _passwordCtrl,
               decoration: const InputDecoration(labelText: '密碼'),
               obscureText: true,
+              autofillHints: const [AutofillHints.password],
             ),
-            const SizedBox(height: 24),
+            if (!_isRegister)
+              Row(
+                children: [
+                  Checkbox(
+                    value: _rememberMe,
+                    onChanged: (v) => setState(() => _rememberMe = v ?? true),
+                  ),
+                  const Text('記住我'),
+                ],
+              ),
+            const SizedBox(height: 8),
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
