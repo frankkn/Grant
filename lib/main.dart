@@ -6,14 +6,16 @@ import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/name_setup_screen.dart';
+import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/music_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService().initialize();
-  await MusicService().initialize();
+  try { await NotificationService().initialize(); } catch (_) {}
+  try { await MusicService().initialize(); } catch (_) {}
+  try { await AuthService().handleGoogleRedirectResult(); } catch (_) {}
   runApp(const GrantApp());
 }
 

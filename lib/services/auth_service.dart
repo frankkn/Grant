@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
 
@@ -39,8 +40,28 @@ class AuthService {
   }
 
   Future<UserModel?> signInWithGoogle() async {
+    if (kIsWeb) {
+      final provider = GoogleAuthProvider();
+      provider.addScope('email');
+      final result = await _auth.signInWithPopup(provider);
+      final user = result.user;
+      if (user == null) return null;
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (!doc.exists) {
+        final userModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName ?? 'User',
+          createdAt: DateTime.now(),
+        );
+        await _db.collection('users').doc(user.uid).set(userModel.toMap());
+        return userModel;
+      }
+      return UserModel.fromDoc(doc);
+    }
+
     final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) return null; // 使用者取消
+    if (googleUser == null) return null;
 
     final googleAuth = await googleUser.authentication;
     final credential = GoogleAuthProvider.credential(
@@ -51,7 +72,6 @@ class AuthService {
     final userCredential = await _auth.signInWithCredential(credential);
     final user = userCredential.user!;
 
-    // 若是第一次登入，建立 Firestore 文件
     final doc = await _db.collection('users').doc(user.uid).get();
     if (!doc.exists) {
       final userModel = UserModel(
@@ -64,6 +84,26 @@ class AuthService {
       return userModel;
     }
     return UserModel.fromDoc(doc);
+  }
+
+  // App 啟動時處理 Google redirect 結果
+  Future<void> handleGoogleRedirectResult() async {
+    if (!kIsWeb) return;
+    try {
+      final result = await _auth.getRedirectResult();
+      if (result.user == null) return;
+      final user = result.user!;
+      final doc = await _db.collection('users').doc(user.uid).get();
+      if (!doc.exists) {
+        final userModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName ?? 'User',
+          createdAt: DateTime.now(),
+        );
+        await _db.collection('users').doc(user.uid).set(userModel.toMap());
+      }
+    } catch (_) {}
   }
 
   Future<void> logout() async {

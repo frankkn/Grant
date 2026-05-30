@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../services/music_service.dart';
 import 'login_screen.dart';
 import 'pair_screen.dart';
 import 'settings_screen.dart';
@@ -49,7 +50,9 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           final user = snap.data!;
-          return Stack(
+          return GestureDetector(
+            onTap: () => MusicService().startOnWeb(),
+            child: Stack(
             fit: StackFit.expand,
             children: [
               Image.asset('assets/images/background.jpg', fit: BoxFit.cover),
@@ -123,6 +126,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
             ],
+          ),
           );
         },
       ),
