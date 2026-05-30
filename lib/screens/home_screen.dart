@@ -49,18 +49,52 @@ class HomeScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           final user = snap.data!;
-          return Padding(
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset('assets/images/background.jpg', fit: BoxFit.cover),
+              Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('你好，${user.displayName}！',
-                    style: const TextStyle(fontSize: 20)),
-                const SizedBox(height: 8),
-                Text(
-                  user.partnerId != null ? '狀態：已配對 ❤️' : '狀態：尚未配對',
-                  style: TextStyle(
-                    color: user.partnerId != null ? Colors.pink : Colors.grey,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.pink.shade50,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.pink.shade100),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '你好，${user.displayName}！',
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              user.partnerId != null ? '狀態：已配對 ❤️' : '狀態：尚未配對',
+                              style: TextStyle(
+                                color: user.partnerId != null ? Colors.pink : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.asset(
+                          'assets/images/snowball.png',
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Divider(height: 32),
@@ -87,6 +121,8 @@ class HomeScreen extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+            ],
           );
         },
       ),

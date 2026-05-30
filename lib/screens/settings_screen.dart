@@ -1,10 +1,23 @@
 import 'package:flutter/material.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
+import '../services/music_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final String? partnerId;
   const SettingsScreen({super.key, this.partnerId});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _music = MusicService();
+
+  Future<void> _changeVolume(int delta) async {
+    await _music.setVolume(_music.volume + delta);
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +25,33 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('設定')),
       body: ListView(
         children: [
-          if (partnerId != null)
+          ListTile(
+            leading: const Icon(Icons.music_note),
+            title: const Text('音量'),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _music.volume > 0 ? () => _changeVolume(-10) : null,
+                ),
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    '${_music.volume}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _music.volume < 100 ? () => _changeVolume(10) : null,
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          if (widget.partnerId != null)
             ListTile(
               leading: const Icon(Icons.link_off, color: Colors.red),
               title: const Text('解除配對', style: TextStyle(color: Colors.red)),
@@ -26,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
   void _showUnpairDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => _UnpairDialog(partnerId: partnerId!),
+      builder: (context) => _UnpairDialog(partnerId: widget.partnerId!),
     );
   }
 }

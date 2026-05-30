@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/wish_model.dart';
+import 'notification_service.dart';
 
 class WishService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -37,6 +38,12 @@ class WishService {
       updatedAt: now,
     );
     await ref.set(wish.toMap());
+
+    // 發推播通知給另一半
+    await NotificationService().sendWishNotification(
+      toUid: partnerId,
+      wishTitle: title,
+    );
   }
 
   /// 監聽我送出的許願
@@ -56,6 +63,46 @@ class WishService {
         .where('status', isEqualTo: 'pending')
         .snapshots()
         .map((snap) => snap.docs.map(WishModel.fromDoc).toList());
+  }
+
+  /// 編輯許願（只允許 pending 狀態）
+  Future<void> updateWish({
+    required String wishId,
+    required String title,
+    required String price,
+    required int heartRating,
+    String? productUrl,
+    String? description,
+    required String reason,
+    required DateTime scheduledAt,
+  }) async {
+    await _db.collection('wishes').doc(wishId).update({
+      'title': title,
+      'price': price,
+      'heartRating': heartRating,
+      'productUrl': productUrl,
+      'description': description,
+      'reason': reason,
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// 刪除許願（只允許 pending 狀態）
+  Future<void> deleteWish(String wishId) async {
+    await _db.collection('wishes').doc(wishId).delete();
+  }
+
+  /// 監聽我已審核的許願（通過或駁回）
+  Stream<List<WishModel>> watchReviewedWishes() {
+    return _db
+        .collection('wishes')
+        .where('partnerId', isEqualTo: _myUid)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map(WishModel.fromDoc)
+            .where((w) => w.status != WishStatus.pending)
+            .toList());
   }
 
   /// 審核許願（通過或駁回）

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/wish_service.dart';
+import 'edit_wish_screen.dart';
 import 'wish_detail_screen.dart';
 
 class WishScreen extends StatefulWidget {
@@ -222,7 +223,25 @@ class _WishScreenState extends State<WishScreen> {
                   ))),
                 ],
               ),
-              trailing: _statusChip(w.status),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _statusChip(w.status),
+                  const SizedBox(width: 4),
+                  if (w.status == WishStatus.pending)
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => EditWishScreen(wish: w)),
+                      ),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                    onPressed: () => _confirmDelete(context, w),
+                  ),
+                ],
+              ),
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => WishDetailScreen(wish: w)),
@@ -234,23 +253,83 @@ class _WishScreenState extends State<WishScreen> {
     );
   }
 
-  Widget _buildReviewTab() {
-    return StreamBuilder<List<WishModel>>(
-      stream: _wishService.watchIncomingWishes(),
-      builder: (_, snap) {
-        if (snap.hasError) return Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red)));
-        if (!snap.hasData) return const Center(child: Text('載入中...'));
-        if (snap.data!.isEmpty) {
-          return const Center(child: Text('目前沒有待審核的許願'));
-        }
-        return ListView.builder(
-          itemCount: snap.data!.length,
-          itemBuilder: (_, i) => _WishReviewCard(
-            wish: snap.data![i],
-            wishService: _wishService,
+  Future<void> _confirmDelete(BuildContext context, WishModel wish) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('刪除許願'),
+        content: Text('確定要刪除「${wish.title}」嗎？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('刪除'),
           ),
-        );
-      },
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _wishService.deleteWish(wish.id);
+    }
+  }
+
+  Widget _buildReviewTab() {
+    return CustomScrollView(
+      slivers: [
+        // 待審核
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text('待審核', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.grey.shade600)),
+          ),
+        ),
+        StreamBuilder<List<WishModel>>(
+          stream: _wishService.watchIncomingWishes(),
+          builder: (_, snap) {
+            if (snap.hasError) return SliverToBoxAdapter(child: Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red))));
+            if (!snap.hasData) return const SliverToBoxAdapter(child: Center(child: Text('載入中...')));
+            if (snap.data!.isEmpty) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(16), child: Text('目前沒有待審核的許願', style: TextStyle(color: Colors.grey))));
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _WishReviewCard(wish: snap.data![i], wishService: _wishService),
+                childCount: snap.data!.length,
+              ),
+            );
+          },
+        ),
+
+        // 已審核
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+            child: Text('已審核', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.grey.shade600)),
+          ),
+        ),
+        StreamBuilder<List<WishModel>>(
+          stream: _wishService.watchReviewedWishes(),
+          builder: (_, snap) {
+            if (!snap.hasData) return const SliverToBoxAdapter(child: Center(child: Text('載入中...')));
+            if (snap.data!.isEmpty) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(16), child: Text('還沒有審核過任何許願', style: TextStyle(color: Colors.grey))));
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (_, i) {
+                  final w = snap.data![i];
+                  return ListTile(
+                    title: Text(w.title),
+                    subtitle: w.reviewNote != null && w.reviewNote!.isNotEmpty
+                        ? Text('回覆：${w.reviewNote}')
+                        : null,
+                    trailing: _statusChip(w.status),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WishDetailScreen(wish: w))),
+                  );
+                },
+                childCount: snap.data!.length,
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 
