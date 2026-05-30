@@ -1,0 +1,45 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'  # 只有 push v1.0.0、v1.1.0 這種 tag 才觸發
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Create GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-debug.apk
+          generate_release_notes: false
+          body: |
+            ## Grant ${{ github.ref_name }}
+
+            ### 安裝方式
+            下載 `app-debug.apk`，在 Android 手機上安裝即可。
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
