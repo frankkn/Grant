@@ -1,5 +1,8 @@
 # Grant 💝
 
+[![Version](https://img.shields.io/badge/version-v1.0.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.0.0)
+[![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
+
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
 
 ---
@@ -7,7 +10,7 @@
 ## 如何使用
 
 ### Android 安裝
-1. 下載最新的 [APK 檔案](https://github.com/frankkn/Grant/releases)
+1. 下載 [app-debug.apk（v1.0.0）](https://github.com/frankkn/Grant/releases/download/v1.0.0/app-debug.apk)
 2. 在手機「設定」→「安全性」→ 開啟「**允許安裝不明來源的應用程式**」
 3. 點開下載的 APK 並安裝
 4. 開啟 Grant，註冊帳號或用 Google 登入
