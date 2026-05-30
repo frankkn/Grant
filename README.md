@@ -84,3 +84,12 @@ flutter run -d chrome --web-port 5000
 # Build Android APK
 flutter build apk --debug
 ```
+
+---
+
+## 版本資訊
+
+| 版本 | 日期 | 更新內容 |
+|------|------|---------|
+| v1.1.0 | 2026-05-30 | 修復送出願望按鈕被鍵盤遮住的問題、新增送出成功彈窗、iOS 非 Safari 瀏覽器提示、APK 改名為 app-grant.apk、GitHub Actions 自動發布 |
+| v1.0.0 | 2026-05-30 | 首次發布：情侶配對、許願系統、推播通知、背景音樂、Web 版上線 |
