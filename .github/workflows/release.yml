@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'  # 只有 push v1.0.0、v1.1.0 這種 tag 才觸發
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -43,6 +46,6 @@ jobs:
             ## Grant ${{ github.ref_name }}
 
             ### 安裝方式
-            下載 `app-debug.apk`，在 Android 手機上安裝即可。
+            下載 `app-grant.apk`，在 Android 手機上安裝即可。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
