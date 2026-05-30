@@ -60,7 +60,37 @@ class _WishScreenState extends State<WishScreen> {
       _productUrlCtrl.clear();
       _descriptionCtrl.clear();
       _reasonCtrl.clear();
-      setState(() { _heartRating = 0; _message = '許願已送出！'; });
+      setState(() { _heartRating = 0; _message = null; });
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.favorite, color: Colors.pinkAccent, size: 56),
+                SizedBox(height: 16),
+                Text(
+                  '許願送出成功！',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '等待另一半審核吧 💝',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('好的'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       setState(() => _message = '錯誤：$e');
     }
@@ -95,108 +125,135 @@ class _WishScreenState extends State<WishScreen> {
   }
 
   Widget _buildSendTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-          const Text('許下我的願望 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _titleCtrl,
-            decoration: const InputDecoration(hintText: '我想要...'),
-          ),
-          const SizedBox(height: 24),
-          const Text('費用參考 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _priceCtrl,
-            decoration: const InputDecoration(hintText: '例如：NT\$500 或 無價'),
-          ),
-          const SizedBox(height: 24),
-          const Text('心動指數 ♡ *', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          Row(
-            children: List.generate(5, (i) {
-              final filled = i < _heartRating;
-              return GestureDetector(
-                onTap: () => setState(() => _heartRating = i + 1),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    filled ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.pink,
-                    size: 36,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            children: [
+              const Text('許下我的願望 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _titleCtrl,
+                decoration: const InputDecoration(hintText: '我想要...'),
+              ),
+              const SizedBox(height: 24),
+              const Text('費用參考 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _priceCtrl,
+                decoration: const InputDecoration(hintText: '例如：NT\$500 或 無價'),
+              ),
+              const SizedBox(height: 24),
+              const Text('心動指數 ♡ *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              Row(
+                children: List.generate(5, (i) {
+                  final filled = i < _heartRating;
+                  return GestureDetector(
+                    onTap: () => setState(() => _heartRating = i + 1),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        filled ? Icons.favorite : Icons.favorite_border,
+                        color: Colors.pink,
+                        size: 36,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 24),
+              const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _productUrlCtrl,
+                decoration: const InputDecoration(hintText: 'https://...'),
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 24),
+              const Text('商品描述 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _descriptionCtrl,
+                decoration: InputDecoration(
+                  hintText: '描述一下這個商品...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.pinkAccent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.pink, width: 2),
                   ),
                 ),
-              );
-            }),
-          ),
-          const SizedBox(height: 24),
-          const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _productUrlCtrl,
-            decoration: const InputDecoration(hintText: 'https://...'),
-            keyboardType: TextInputType.url,
-          ),
-          const SizedBox(height: 24),
-          const Text('商品描述 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _descriptionCtrl,
-            decoration: InputDecoration(
-              hintText: '描述一下這個商品...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.pinkAccent),
+                minLines: 3,
+                maxLines: 6,
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.pink, width: 2),
+              const SizedBox(height: 24),
+              const Text('我的理由 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _reasonCtrl,
+                decoration: InputDecoration(
+                  hintText: '說服另一半的理由...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.pinkAccent),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.pink, width: 2),
+                  ),
+                ),
+                minLines: 4,
+                maxLines: 8,
               ),
-            ),
-            minLines: 3,
-            maxLines: 6,
-          ),
-          const SizedBox(height: 24),
-          const Text('我的理由 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _reasonCtrl,
-            decoration: InputDecoration(
-              hintText: '說服另一半的理由...',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.pinkAccent),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Text('預定時間：${_scheduledAt.toLocal().toString().split(' ')[0]}'),
+                  const SizedBox(width: 12),
+                  TextButton(onPressed: _pickDate, child: const Text('選擇日期')),
+                ],
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: Colors.pink, width: 2),
-              ),
-            ),
-            minLines: 4,
-            maxLines: 8,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('預定時間：${_scheduledAt.toLocal().toString().split(' ')[0]}'),
-              const SizedBox(width: 12),
-              TextButton(onPressed: _pickDate, child: const Text('選擇日期')),
+              const SizedBox(height: 8),
             ],
           ),
-          const SizedBox(height: 16),
-          ElevatedButton(onPressed: _submit, child: const Text('送出許願')),
-          if (_message != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(_message!,
-                  style: TextStyle(
-                    color: _message!.startsWith('錯誤') || _message!.startsWith('請') ? Colors.red : Colors.green,
-                  )),
-            ),
-        ],
+        ),
+        // 按鈕固定在底部，不隨鍵盤消失
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            border: Border(top: BorderSide(color: Colors.grey.shade200)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_message != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(_message!,
+                      style: TextStyle(
+                        color: _message!.startsWith('錯誤') || _message!.startsWith('請')
+                            ? Colors.red
+                            : Colors.green,
+                      )),
+                ),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  child: const Text('送出許願'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
