@@ -10,7 +10,7 @@
 ## 如何使用
 
 ### Android 安裝
-1. 下載 [app-debug.apk（v1.0.0）](https://github.com/frankkn/Grant/releases/download/v1.0.0/app-debug.apk)
+1. 下載 [app-debug.apk（最新版）](https://github.com/frankkn/Grant/releases/latest/download/app-debug.apk)
 2. 在手機「設定」→「安全性」→ 開啟「**允許安裝不明來源的應用程式**」
 3. 點開下載的 APK 並安裝
 4. 開啟 Grant，註冊帳號或用 Google 登入
