@@ -18,6 +18,7 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
@@ -65,33 +66,36 @@
   </style>
 </head>
 <body>
+  <div id="loading" style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;color:#999;font-size:18px;">
+    Grant 載入中...
+  </div>
+
   <div id="update-banner">
     🎉 發現新版本！
     <button onclick="applyUpdate()">點我更新</button>
   </div>
 
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('flutter_service_worker.js').then(function(reg) {
-        // 偵測新版 Service Worker 下載完成
-        reg.addEventListener('updatefound', function() {
-          const newWorker = reg.installing;
-          newWorker.addEventListener('statechange', function() {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              document.getElementById('update-banner').style.display = 'flex';
-            }
+    // 等 Flutter 啟動後再偵測 SW 更新，避免 iOS 衝突
+    window.addEventListener('load', function() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(function(reg) {
+          reg.addEventListener('updatefound', function() {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', function() {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                document.getElementById('update-banner').style.display = 'flex';
+              }
+            });
           });
+          setInterval(function() { reg.update(); }, 60000);
         });
 
-        // 每 60 秒主動檢查一次有無新版
-        setInterval(function() { reg.update(); }, 60000);
-      });
-
-      // 新 SW 接管後重新整理頁面
-      navigator.serviceWorker.addEventListener('controllerchange', function() {
-        window.location.reload();
-      });
-    }
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+          window.location.reload();
+        });
+      }
+    });
 
     function applyUpdate() {
       navigator.serviceWorker.getRegistration().then(function(reg) {
@@ -104,6 +108,12 @@
     }
   </script>
 
+  <script>
+    window.addEventListener('flutter-first-frame', function() {
+      var loading = document.getElementById('loading');
+      if (loading) loading.style.display = 'none';
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
