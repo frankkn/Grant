@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/wish_service.dart';
+import 'wish_detail_screen.dart';
 
 class WishScreen extends StatefulWidget {
   final String partnerId;
@@ -77,13 +78,17 @@ class _WishScreenState extends State<WishScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('許願'),
-          bottom: const TabBar(tabs: [Tab(text: '送出許願'), Tab(text: '審核許願')]),
+          bottom: const TabBar(tabs: [
+            Tab(text: '送出許願'),
+            Tab(text: '我的許願'),
+            Tab(text: '審核許願'),
+          ]),
         ),
-        body: TabBarView(children: [_buildSendTab(), _buildReviewTab()]),
+        body: TabBarView(children: [_buildSendTab(), _buildMyWishesTab(), _buildReviewTab()]),
       ),
     );
   }
@@ -190,40 +195,42 @@ class _WishScreenState extends State<WishScreen> {
                     color: _message!.startsWith('錯誤') || _message!.startsWith('請') ? Colors.red : Colors.green,
                   )),
             ),
-          const Divider(height: 32),
-          const Text('我的許願清單', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          StreamBuilder<List<WishModel>>(
-            stream: _wishService.watchMyWishes(),
-            builder: (_, snap) {
-              if (snap.hasError) return Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red));
-              if (!snap.hasData) return const Center(child: Text('載入中...'));
-              if (snap.data!.isEmpty) return const Center(child: Text('還沒有許願'));
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: snap.data!.length,
-                itemBuilder: (_, i) {
-                  final w = snap.data![i];
-                  return ListTile(
-                    title: Text(w.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('價格：${w.price}'),
-                        Row(children: List.generate(5, (i) => Icon(
-                          i < w.heartRating ? Icons.favorite : Icons.favorite_border,
-                          color: Colors.pink, size: 14,
-                        ))),
-                      ],
-                    ),
-                    trailing: _statusChip(w.status),
-                  );
-                },
-              );
-            },
-          ),
         ],
+    );
+  }
+
+  Widget _buildMyWishesTab() {
+    return StreamBuilder<List<WishModel>>(
+      stream: _wishService.watchMyWishes(),
+      builder: (_, snap) {
+        if (snap.hasError) return Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red)));
+        if (!snap.hasData) return const Center(child: Text('載入中...'));
+        if (snap.data!.isEmpty) return const Center(child: Text('還沒有送出許願'));
+        return ListView.builder(
+          itemCount: snap.data!.length,
+          itemBuilder: (_, i) {
+            final w = snap.data![i];
+            return ListTile(
+              title: Text(w.title),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('費用：${w.price}'),
+                  Row(children: List.generate(5, (i) => Icon(
+                    i < w.heartRating ? Icons.favorite : Icons.favorite_border,
+                    color: Colors.pink, size: 14,
+                  ))),
+                ],
+              ),
+              trailing: _statusChip(w.status),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => WishDetailScreen(wish: w)),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

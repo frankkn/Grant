@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'pair_screen.dart';
+import 'settings_screen.dart';
 import 'wish_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -15,6 +16,18 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Grant'),
         actions: [
+          StreamBuilder<UserModel?>(
+            stream: auth.watchCurrentUser(),
+            builder: (context, snap) => IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SettingsScreen(partnerId: snap.data?.partnerId),
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

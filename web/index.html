@@ -34,8 +34,76 @@
 
   <title>grant</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    #update-banner {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      align-items: center;
+      gap: 12px;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+    #update-banner button {
+      background: #e91e8c;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
+  <div id="update-banner">
+    🎉 發現新版本！
+    <button onclick="applyUpdate()">點我更新</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('flutter_service_worker.js').then(function(reg) {
+        // 偵測新版 Service Worker 下載完成
+        reg.addEventListener('updatefound', function() {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', function() {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('update-banner').style.display = 'flex';
+            }
+          });
+        });
+
+        // 每 60 秒主動檢查一次有無新版
+        setInterval(function() { reg.update(); }, 60000);
+      });
+
+      // 新 SW 接管後重新整理頁面
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        window.location.reload();
+      });
+    }
+
+    function applyUpdate() {
+      navigator.serviceWorker.getRegistration().then(function(reg) {
+        if (reg && reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+          window.location.reload();
+        }
+      });
+    }
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
