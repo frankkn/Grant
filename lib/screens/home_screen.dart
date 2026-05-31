@@ -88,14 +88,14 @@ class HomeScreen extends StatelessWidget {
                                       final name = partnerSnap.data?.displayName;
                                       return Text(
                                         name != null
-                                            ? '狀態：已和 $name 配對 ❤️'
-                                            : '狀態：已配對 ❤️',
+                                            ? '已和 $name 配對 ❤️'
+                                            : '已配對 ❤️',
                                         style: const TextStyle(color: Colors.pink),
                                       );
                                     },
                                   )
                                 : const Text(
-                                    '狀態：尚未配對',
+                                    '尚未配對',
                                     style: TextStyle(color: Colors.grey),
                                   ),
                           ],
