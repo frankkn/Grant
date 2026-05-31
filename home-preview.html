@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grant 首頁預覽</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons" rel="stylesheet" />
+  <style>
+    :root {
+      /* 可由滑桿即時調整的版面參數 */
+      --btn-width: 200px;    /* 按鈕寬度 */
+      --btn-x: 0px;          /* 水平位移 (+右 / -左) */
+      --stack-top: 50%;      /* 垂直位置 (距按鈕區頂部) */
+      --btn-gap: 16px;       /* 按鈕之間間距 */
+      --btn-shadow: 0.40;    /* 陰影強度 (alpha) */
+      --btn-color: #FCE4EC;  /* 按鈕底色 (pink.shade50，同問候卡片) */
+      --btn-text: #C2185B;   /* 按鈕文字/圖示顏色 */
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background: #2b2b2b;
+      display: flex;
+      gap: 32px;
+      padding: 24px;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    /* ---- 手機外框 ---- */
+    .phone {
+      width: 390px;
+      height: 800px;
+      background: #fff;
+      border-radius: 36px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      flex: none;
+    }
+
+    /* ---- AppBar ---- */
+    .appbar {
+      height: 56px;
+      flex: none;
+      display: flex;
+      align-items: center;
+      padding: 0 8px 0 16px;
+      background: #fff;
+      position: relative;
+      z-index: 3;
+    }
+    .appbar .title { font-size: 20px; font-weight: 500; flex: 1; }
+    .appbar .material-icons { color: #555; margin-left: 12px; font-size: 24px; }
+
+    /* ---- Body (背景圖 + 內容) ---- */
+    .body {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .bg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .content {
+      position: absolute; inset: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- 問候卡片 ---- */
+    .card {
+      background: #FCE4EC;            /* pink.shade50 */
+      border: 1px solid #F8BBD0;     /* pink.shade100 */
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: none;
+    }
+    .card .texts { flex: 1; }
+    .card .hello { font-size: 20px; font-weight: 700; }
+    .card .status { color: #E91E63; margin-top: 8px; font-size: 14px; }
+    .card .status .name { color: #C2185B; }
+    .card img.avatar {
+      width: 90px; height: 90px;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+
+    /* ---- 按鈕群（浮在筆記本上）---- */
+    .btn-area {
+      flex: 1;
+      position: relative;
+    }
+    .btn-stack {
+      position: absolute;
+      left: 50%;
+      top: var(--stack-top);
+      transform: translate(calc(-50% + var(--btn-x)), -50%);
+      width: var(--btn-width);
+      display: flex;
+      flex-direction: column;
+      gap: var(--btn-gap);
+    }
+    .nbtn {
+      width: 100%;
+      border: none;
+      border-radius: 14px;
+      background: var(--btn-color);
+      color: var(--btn-text);
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(233, 30, 99, var(--btn-shadow));
+      transition: transform .08s;
+    }
+    .nbtn:active { transform: scale(.98); }
+    .nbtn .material-icons-outlined,
+    .nbtn .material-icons { font-size: 20px; }
+
+    /* ---- 右側控制面板 ---- */
+    .panel {
+      width: 300px;
+      color: #eee;
+      font-size: 13px;
+      background: #1f1f1f;
+      border-radius: 12px;
+      padding: 20px;
+      position: sticky;
+      top: 24px;
+    }
+    .panel h2 { font-size: 15px; margin-bottom: 4px; color: #fff; }
+    .panel p.hint { color: #999; font-size: 12px; margin-bottom: 16px; line-height: 1.5; }
+    .ctrl { margin-bottom: 18px; }
+    .ctrl label { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .ctrl label b { color: #F8BBD0; font-variant-numeric: tabular-nums; }
+    .ctrl input[type=range] { width: 100%; accent-color: #F06292; }
+    .ctrl input[type=color] { width: 100%; height: 32px; border: none; background: none; cursor: pointer; }
+    .ctrl select { width: 100%; padding: 6px; border-radius: 6px; background: #2b2b2b; color: #eee; border: 1px solid #444; }
+    .summary {
+      margin-top: 8px; padding: 12px;
+      background: #111; border-radius: 8px;
+      font-family: monospace; font-size: 12px;
+      color: #9ae6b4; white-space: pre-wrap; line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <!-- 手機畫面 -->
+  <div class="phone">
+    <div class="appbar">
+      <span class="title">Grant</span>
+      <span class="material-icons">settings</span>
+      <span class="material-icons">logout</span>
+    </div>
+    <div class="body">
+      <img class="bg" src="assets/images/background.jpg" alt="背景" />
+      <div class="content">
+        <div class="card">
+          <div class="texts">
+            <div class="hello">你好，Frank！</div>
+            <div class="status">狀態：已和 <span class="name">Chen David</span> 配對 ❤️</div>
+          </div>
+          <img class="avatar" src="assets/images/snowball.png" alt="雪球" />
+        </div>
+
+        <div class="btn-area">
+          <div class="btn-stack">
+            <button class="nbtn"><span class="material-icons">star</span>前往許願</button>
+            <button class="nbtn"><span class="material-icons-outlined">list_alt</span>願望清單</button>
+            <button class="nbtn"><span class="material-icons-outlined">fact_check</span>審核願望</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 控制面板 -->
+  <div class="panel">
+    <h2>版面微調</h2>
+    <p class="hint">拖滑桿即時預覽，不用重 build。調到滿意把下方數值告訴我，我套回 Flutter。</p>
+
+    <div class="ctrl">
+      <label>按鈕寬度 <b id="v-width">200</b>px</label>
+      <input type="range" id="width" min="120" max="340" value="200" />
+    </div>
+    <div class="ctrl">
+      <label>水平位移 <b id="v-x">0</b>px（-左 / +右）</label>
+      <input type="range" id="x" min="-100" max="100" value="0" />
+    </div>
+    <div class="ctrl">
+      <label>垂直位置 <b id="v-top">50</b>%</label>
+      <input type="range" id="top" min="0" max="100" value="50" />
+    </div>
+    <div class="ctrl">
+      <label>按鈕間距 <b id="v-gap">16</b>px</label>
+      <input type="range" id="gap" min="0" max="48" value="16" />
+    </div>
+    <div class="ctrl">
+      <label>陰影強度 <b id="v-shadow">0.40</b></label>
+      <input type="range" id="shadow" min="0" max="100" value="40" />
+    </div>
+    <div class="ctrl">
+      <label>按鈕底色 <b id="v-color">#FCE4EC</b></label>
+      <input type="color" id="color" value="#FCE4EC" />
+    </div>
+    <div class="ctrl">
+      <label>按鈕文字色 <b id="v-text">#C2185B</b></label>
+      <input type="color" id="text" value="#C2185B" />
+    </div>
+
+    <div class="summary" id="summary"></div>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const $ = (id) => document.getElementById(id);
+
+    function update() {
+      const width = $('width').value;
+      const x = $('x').value;
+      const top = $('top').value;
+      const gap = $('gap').value;
+      const shadow = ($('shadow').value / 100).toFixed(2);
+      const color = $('color').value;
+      const text = $('text').value;
+
+      root.style.setProperty('--btn-width', width + 'px');
+      root.style.setProperty('--btn-x', x + 'px');
+      root.style.setProperty('--stack-top', top + '%');
+      root.style.setProperty('--btn-gap', gap + 'px');
+      root.style.setProperty('--btn-shadow', shadow);
+      root.style.setProperty('--btn-color', color);
+      root.style.setProperty('--btn-text', text);
+
+      $('v-width').textContent = width;
+      $('v-x').textContent = x;
+      $('v-top').textContent = top;
+      $('v-gap').textContent = gap;
+      $('v-shadow').textContent = shadow;
+      $('v-color').textContent = color.toUpperCase();
+      $('v-text').textContent = text.toUpperCase();
+
+      $('summary').textContent =
+        `按鈕寬度: ${width}px\n水平位移: ${x}px\n垂直位置: ${top}%\n按鈕間距: ${gap}px\n陰影強度: ${shadow}\n按鈕底色: ${color.toUpperCase()}\n按鈕文字色: ${text.toUpperCase()}`;
+    }
+
+    ['width', 'x', 'top', 'gap', 'shadow', 'color', 'text'].forEach(id =>
+      $(id).addEventListener('input', update));
+    update();
+  </script>
+</body>
+</html>
