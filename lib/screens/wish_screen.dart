@@ -115,10 +115,27 @@ class _WishScreenState extends State<WishScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('許願'),
-          bottom: const TabBar(tabs: [
-            Tab(text: '送出許願'),
-            Tab(text: '我的許願'),
-            Tab(text: '審核許願'),
+          bottom: TabBar(tabs: [
+            const Tab(text: '送出許願'),
+            const Tab(text: '我的許願'),
+            Tab(
+              child: StreamBuilder<List<WishModel>>(
+                stream: _wishService.watchIncomingWishes(),
+                builder: (context, snap) {
+                  final count = snap.data?.length ?? 0;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('審核許願'),
+                      if (count > 0) ...[
+                        const SizedBox(width: 6),
+                        _countChip(count),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ),
           ]),
         ),
         body: TabBarView(children: [_buildSendTab(), _buildMyWishesTab(), _buildReviewTab()]),
@@ -389,6 +406,23 @@ class _WishScreenState extends State<WishScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _countChip(int count) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
