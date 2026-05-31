@@ -1,0 +1,35 @@
+name: Deploy Web
+
+on:
+  push:
+    tags:
+      - 'v*'  # 與 APK 發版同步：push v1.2.0 這種 tag 才觸發
+  workflow_dispatch: {}  # 允許在 Actions 頁面手動觸發（測試用）
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.1'
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web
+        run: flutter build web --release
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: grant-45f5c
+          channelId: live  # 部署到正式網址（非預覽頻道）
