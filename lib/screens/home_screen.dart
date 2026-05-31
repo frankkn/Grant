@@ -199,20 +199,10 @@ class _NotebookButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasBadge = badgeCount > 0;
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: Icon(icon),
-        label: badgeCount > 0
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label),
-                  const SizedBox(width: 6),
-                  _CountChip(count: badgeCount),
-                ],
-              )
-            : Text(label),
+      child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFCE4EC), // pink.shade50，同問候卡片
@@ -222,6 +212,23 @@ class _NotebookButton extends StatelessWidget {
           shadowColor: Colors.pink.withValues(alpha: 0.59),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 左側隱形佔位，與右側數字對稱，讓圖示＋文字維持置中、與其他按鈕對齊
+            if (hasBadge) ...[
+              Opacity(opacity: 0, child: _CountChip(count: badgeCount)),
+              const SizedBox(width: 6),
+            ],
+            Icon(icon, size: 20),
+            const SizedBox(width: 8),
+            Text(label),
+            if (hasBadge) ...[
+              const SizedBox(width: 6),
+              _CountChip(count: badgeCount),
+            ],
+          ],
         ),
       ),
     );
