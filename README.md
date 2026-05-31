@@ -26,6 +26,16 @@
 
 ---
 
+## 畫面預覽
+
+<p align="center">
+  <img src="docs/screenshots/home.png" width="32%" alt="首頁" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/wish.png" width="32%" alt="許願頁" />
+</p>
+
+---
+
 ## 功能
 
 ### 帳號
