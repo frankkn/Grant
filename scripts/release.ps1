@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Grant 發版腳本：一次完成版本號更新、README badge、changelog、commit 與 tag。
 
