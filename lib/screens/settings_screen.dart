@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
@@ -13,6 +14,15 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _music = MusicService();
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      setState(() => _version = 'v${info.version}');
+    });
+  }
 
   Future<void> _changeVolume(int delta) async {
     await _music.setVolume(_music.volume + delta);
@@ -57,6 +67,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text('解除配對', style: TextStyle(color: Colors.red)),
               onTap: () => _showUnpairDialog(context),
             ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline, color: Colors.grey),
+            title: const Text('版本', style: TextStyle(color: Colors.grey)),
+            trailing: Text(_version, style: const TextStyle(color: Colors.grey)),
+          ),
         ],
       ),
     );
