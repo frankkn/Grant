@@ -6,7 +6,8 @@ import 'wish_detail_screen.dart';
 
 class WishScreen extends StatefulWidget {
   final String partnerId;
-  const WishScreen({super.key, required this.partnerId});
+  final int initialIndex;
+  const WishScreen({super.key, required this.partnerId, this.initialIndex = 0});
 
   @override
   State<WishScreen> createState() => _WishScreenState();
@@ -110,6 +111,7 @@ class _WishScreenState extends State<WishScreen> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
+      initialIndex: widget.initialIndex,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('許願'),

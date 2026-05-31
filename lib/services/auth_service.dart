@@ -111,6 +111,12 @@ class AuthService {
     await _auth.signOut();
   }
 
+  Future<UserModel?> fetchUser(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return null;
+    return UserModel.fromDoc(doc);
+  }
+
   Future<UserModel?> fetchCurrentUser() async {
     final uid = currentUser?.uid;
     if (uid == null) return null;
