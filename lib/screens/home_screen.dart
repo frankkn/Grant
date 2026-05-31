@@ -79,12 +79,23 @@ class HomeScreen extends StatelessWidget {
                               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              user.partnerId != null ? '狀態：已配對 ❤️' : '狀態：尚未配對',
-                              style: TextStyle(
-                                color: user.partnerId != null ? Colors.pink : Colors.grey,
-                              ),
-                            ),
+                            user.partnerId != null
+                                ? FutureBuilder<UserModel?>(
+                                    future: auth.fetchUser(user.partnerId!),
+                                    builder: (context, partnerSnap) {
+                                      final name = partnerSnap.data?.displayName;
+                                      return Text(
+                                        name != null
+                                            ? '狀態：已和 $name 配對 ❤️'
+                                            : '狀態：已配對 ❤️',
+                                        style: const TextStyle(color: Colors.pink),
+                                      );
+                                    },
+                                  )
+                                : const Text(
+                                    '狀態：尚未配對',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
                           ],
                         ),
                       ),
@@ -100,28 +111,51 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Divider(height: 32),
-                if (user.partnerId == null)
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.favorite_border),
-                    label: const Text('配對另一半'),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PairScreen()),
-                    ),
+                Expanded(
+                  child: Center(
+                    child: user.partnerId == null
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: _NotebookButton(
+                              icon: Icons.favorite_border,
+                              label: '配對另一半',
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const PairScreen()),
+                              ),
+                            ),
+                          )
+                        : Transform.translate(
+                            // 往左移，對齊偏左的筆記本
+                            offset: const Offset(-16, 0),
+                            child: SizedBox(
+                              width: 161,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _NotebookButton(
+                                    icon: Icons.star,
+                                    label: '前往許願',
+                                    onPressed: () => _openWish(context, user.partnerId!, 0),
+                                  ),
+                                  const SizedBox(height: 17),
+                                  _NotebookButton(
+                                    icon: Icons.list_alt,
+                                    label: '願望清單',
+                                    onPressed: () => _openWish(context, user.partnerId!, 1),
+                                  ),
+                                  const SizedBox(height: 17),
+                                  _NotebookButton(
+                                    icon: Icons.fact_check_outlined,
+                                    label: '審核願望',
+                                    onPressed: () => _openWish(context, user.partnerId!, 2),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                   ),
-                if (user.partnerId != null) ...[
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.star),
-                    label: const Text('許願 / 審核'),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => WishScreen(partnerId: user.partnerId!),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
           ),
@@ -129,6 +163,47 @@ class HomeScreen extends StatelessWidget {
           ),
           );
         },
+      ),
+    );
+  }
+
+  void _openWish(BuildContext context, String partnerId, int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WishScreen(partnerId: partnerId, initialIndex: index),
+      ),
+    );
+  }
+}
+
+class _NotebookButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  const _NotebookButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: Icon(icon),
+        label: Text(label),
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFCE4EC), // pink.shade50，同問候卡片
+          foregroundColor: const Color(0xFFC2185B),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          elevation: 6,
+          shadowColor: Colors.pink.withValues(alpha: 0.59),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
