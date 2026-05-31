@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
+import '../models/wish_model.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
+import '../services/wish_service.dart';
 import 'login_screen.dart';
 import 'pair_screen.dart';
 import 'settings_screen.dart';
@@ -145,10 +147,16 @@ class HomeScreen extends StatelessWidget {
                                     onPressed: () => _openWish(context, user.partnerId!, 1),
                                   ),
                                   const SizedBox(height: 17),
-                                  _NotebookButton(
-                                    icon: Icons.fact_check_outlined,
-                                    label: '審核願望',
-                                    onPressed: () => _openWish(context, user.partnerId!, 2),
+                                  StreamBuilder<List<WishModel>>(
+                                    stream: WishService().watchIncomingWishes(),
+                                    builder: (context, wishSnap) {
+                                      return _NotebookButton(
+                                        icon: Icons.fact_check_outlined,
+                                        label: '審核願望',
+                                        badgeCount: wishSnap.data?.length ?? 0,
+                                        onPressed: () => _openWish(context, user.partnerId!, 2),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -181,10 +189,12 @@ class _NotebookButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onPressed;
+  final int badgeCount;
   const _NotebookButton({
     required this.icon,
     required this.label,
     required this.onPressed,
+    this.badgeCount = 0,
   });
 
   @override
@@ -193,7 +203,16 @@ class _NotebookButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton.icon(
         icon: Icon(icon),
-        label: Text(label),
+        label: badgeCount > 0
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label),
+                  const SizedBox(width: 6),
+                  _CountChip(count: badgeCount),
+                ],
+              )
+            : Text(label),
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFCE4EC), // pink.shade50，同問候卡片
@@ -204,6 +223,29 @@ class _NotebookButton extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
+      ),
+    );
+  }
+}
+
+class _CountChip extends StatelessWidget {
+  final int count;
+  const _CountChip({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
   }
