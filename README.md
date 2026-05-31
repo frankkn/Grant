@@ -1,6 +1,6 @@
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.1.0)
+[![Version](https://img.shields.io/badge/version-v1.2.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.2.0)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
