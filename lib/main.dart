@@ -31,6 +31,21 @@ class GrantApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.pinkAccent),
         useMaterial3: true,
       ),
+      // 寬螢幕（網頁／桌機）時，將內容限制在手機寬度的置中欄位，兩側留白；
+      // 手機螢幕比 480 窄，這層不會有作用。
+      builder: (context, child) {
+        return ColoredBox(
+          color: const Color(0xFFECECEC),
+          child: Center(
+            child: ClipRect(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      },
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snap) {
