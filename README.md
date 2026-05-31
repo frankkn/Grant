@@ -1,6 +1,6 @@
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.2.1-pink)](https://github.com/frankkn/Grant/releases/tag/v1.2.1)
+[![Version](https://img.shields.io/badge/version-v1.2.2-pink)](https://github.com/frankkn/Grant/releases/tag/v1.2.2)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
@@ -101,6 +101,7 @@ flutter build apk --debug
 
 | 版本 | 日期 | 更新內容 |
 |------|------|---------|
+| v1.2.2 | 2026-05-31 | APK 體積大幅縮小（約 204MB → 56MB）、下載更快；改用固定簽章，往後更新可直接覆蓋免重裝 |
 | v1.2.1 | 2026-05-31 | 配對狀態移除「狀態：」前綴、網頁改為隨版本 tag 自動部署 |
 | v1.2.0 | 2026-05-31 | 首頁改版（三顆筆記本按鈕）、配對狀態顯示對方名字、待審核願望數字提示（首頁與審核分頁）、寬螢幕響應式版面、設定頁顯示版本號 |
 | v1.1.0 | 2026-05-30 | 修復送出願望按鈕被鍵盤遮住的問題、新增送出成功彈窗、iOS 非 Safari 瀏覽器提示、APK 改名為 app-grant.apk、GitHub Actions 自動發布 |
