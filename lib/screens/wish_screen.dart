@@ -31,11 +31,26 @@ class _WishScreenState extends State<WishScreen> {
     final description = _descriptionCtrl.text.trim();
     final reason = _reasonCtrl.text.trim();
 
-    if (title.isEmpty) { setState(() => _message = '請填寫「許下我的願望」'); return; }
-    if (price.isEmpty) { setState(() => _message = '請填寫「費用參考」'); return; }
-    if (_heartRating == 0) { setState(() => _message = '請選擇「心動指數」'); return; }
-    if (description.isEmpty) { setState(() => _message = '請填寫「商品描述」'); return; }
-    if (reason.isEmpty) { setState(() => _message = '請填寫「我的理由」'); return; }
+    if (title.isEmpty) {
+      setState(() => _message = '請填寫「許下我的願望」');
+      return;
+    }
+    if (price.isEmpty) {
+      setState(() => _message = '請填寫「費用參考」');
+      return;
+    }
+    if (_heartRating == 0) {
+      setState(() => _message = '請選擇「心動指數」');
+      return;
+    }
+    if (description.isEmpty) {
+      setState(() => _message = '請填寫「商品描述」');
+      return;
+    }
+    if (reason.isEmpty) {
+      setState(() => _message = '請填寫「我的理由」');
+      return;
+    }
 
     if (productUrl.isNotEmpty) {
       final uri = Uri.tryParse(productUrl);
@@ -61,12 +76,17 @@ class _WishScreenState extends State<WishScreen> {
       _productUrlCtrl.clear();
       _descriptionCtrl.clear();
       _reasonCtrl.clear();
-      setState(() { _heartRating = 0; _message = null; });
+      setState(() {
+        _heartRating = 0;
+        _message = null;
+      });
       if (mounted) {
         await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             content: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -77,10 +97,7 @@ class _WishScreenState extends State<WishScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
-                Text(
-                  '等待另一半審核吧 💝',
-                  style: TextStyle(color: Colors.grey),
-                ),
+                Text('等待另一半審核吧 💝', style: TextStyle(color: Colors.grey)),
               ],
             ),
             actions: [
@@ -115,30 +132,34 @@ class _WishScreenState extends State<WishScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('許願'),
-          bottom: TabBar(tabs: [
-            const Tab(text: '送出許願'),
-            const Tab(text: '我的許願'),
-            Tab(
-              child: StreamBuilder<List<WishModel>>(
-                stream: _wishService.watchIncomingWishes(),
-                builder: (context, snap) {
-                  final count = snap.data?.length ?? 0;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('審核許願'),
-                      if (count > 0) ...[
-                        const SizedBox(width: 6),
-                        _countChip(count),
+          bottom: TabBar(
+            tabs: [
+              const Tab(text: '送出許願'),
+              const Tab(text: '我的許願'),
+              Tab(
+                child: StreamBuilder<List<WishModel>>(
+                  stream: _wishService.watchIncomingWishes(),
+                  builder: (context, snap) {
+                    final count = snap.data?.length ?? 0;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('審核許願'),
+                        if (count > 0) ...[
+                          const SizedBox(width: 6),
+                          _countChip(count),
+                        ],
                       ],
-                    ],
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
-        body: TabBarView(children: [_buildSendTab(), _buildMyWishesTab(), _buildReviewTab()]),
+        body: TabBarView(
+          children: [_buildSendTab(), _buildMyWishesTab(), _buildReviewTab()],
+        ),
       ),
     );
   }
@@ -150,21 +171,30 @@ class _WishScreenState extends State<WishScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             children: [
-              const Text('許下我的願望 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '許下我的願望 *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _titleCtrl,
                 decoration: const InputDecoration(hintText: '我想要...'),
               ),
               const SizedBox(height: 24),
-              const Text('費用參考 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '費用參考 *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _priceCtrl,
                 decoration: const InputDecoration(hintText: '例如：NT\$500 或 無價'),
               ),
               const SizedBox(height: 24),
-              const Text('心動指數 ♡ *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '心動指數 ♡ *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: List.generate(5, (i) {
@@ -183,7 +213,10 @@ class _WishScreenState extends State<WishScreen> {
                 }),
               ),
               const SizedBox(height: 24),
-              const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '商品網址',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _productUrlCtrl,
@@ -191,13 +224,18 @@ class _WishScreenState extends State<WishScreen> {
                 keyboardType: TextInputType.url,
               ),
               const SizedBox(height: 24),
-              const Text('商品描述 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '商品描述 *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _descriptionCtrl,
                 decoration: InputDecoration(
                   hintText: '描述一下這個商品...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.pinkAccent),
@@ -211,13 +249,18 @@ class _WishScreenState extends State<WishScreen> {
                 maxLines: 6,
               ),
               const SizedBox(height: 24),
-              const Text('我的理由 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text(
+                '我的理由 *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _reasonCtrl,
                 decoration: InputDecoration(
                   hintText: '說服另一半的理由...',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.pinkAccent),
@@ -233,7 +276,9 @@ class _WishScreenState extends State<WishScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('預定時間：${_scheduledAt.toLocal().toString().split(' ')[0]}'),
+                  Text(
+                    '預定時間：${_scheduledAt.toLocal().toString().split(' ')[0]}',
+                  ),
                   const SizedBox(width: 12),
                   TextButton(onPressed: _pickDate, child: const Text('選擇日期')),
                 ],
@@ -255,12 +300,16 @@ class _WishScreenState extends State<WishScreen> {
               if (_message != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(_message!,
-                      style: TextStyle(
-                        color: _message!.startsWith('錯誤') || _message!.startsWith('請')
-                            ? Colors.red
-                            : Colors.green,
-                      )),
+                  child: Text(
+                    _message!,
+                    style: TextStyle(
+                      color:
+                          _message!.startsWith('錯誤') ||
+                              _message!.startsWith('請')
+                          ? Colors.red
+                          : Colors.green,
+                    ),
+                  ),
                 ),
               SizedBox(
                 width: double.infinity,
@@ -280,7 +329,14 @@ class _WishScreenState extends State<WishScreen> {
     return StreamBuilder<List<WishModel>>(
       stream: _wishService.watchMyWishes(),
       builder: (_, snap) {
-        if (snap.hasError) return Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red)));
+        if (snap.hasError) {
+          return Center(
+            child: Text(
+              '錯誤：${snap.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
         if (!snap.hasData) return const Center(child: Text('載入中...'));
         if (snap.data!.isEmpty) return const Center(child: Text('還沒有送出許願'));
         return ListView.builder(
@@ -293,10 +349,18 @@ class _WishScreenState extends State<WishScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('費用：${w.price}'),
-                  Row(children: List.generate(5, (i) => Icon(
-                    i < w.heartRating ? Icons.favorite : Icons.favorite_border,
-                    color: Colors.pink, size: 14,
-                  ))),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Icon(
+                        i < w.heartRating
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: Colors.pink,
+                        size: 14,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               trailing: Row(
@@ -306,16 +370,23 @@ class _WishScreenState extends State<WishScreen> {
                   const SizedBox(width: 4),
                   if (w.status == WishStatus.pending)
                     IconButton(
-                      icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                      icon: const Icon(
+                        Icons.edit,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => EditWishScreen(wish: w)),
+                        MaterialPageRoute(
+                          builder: (_) => EditWishScreen(wish: w),
+                        ),
                       ),
                     ),
                   IconButton(
                     icon: const Icon(Icons.delete, size: 20, color: Colors.red),
                     onPressed: () => _confirmDelete(context, w),
                   ),
+                  if (w.status == WishStatus.approved) _fulfilledCheckbox(w),
                 ],
               ),
               onTap: () => Navigator.push(
@@ -336,10 +407,16 @@ class _WishScreenState extends State<WishScreen> {
         title: const Text('刪除許願'),
         content: Text('確定要刪除「${wish.title}」嗎？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('刪除'),
           ),
         ],
@@ -357,18 +434,51 @@ class _WishScreenState extends State<WishScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('待審核', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.grey.shade600)),
+            child: Text(
+              '待審核',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.grey.shade600,
+              ),
+            ),
           ),
         ),
         StreamBuilder<List<WishModel>>(
           stream: _wishService.watchIncomingWishes(),
           builder: (_, snap) {
-            if (snap.hasError) return SliverToBoxAdapter(child: Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red))));
-            if (!snap.hasData) return const SliverToBoxAdapter(child: Center(child: Text('載入中...')));
-            if (snap.data!.isEmpty) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(16), child: Text('目前沒有待審核的許願', style: TextStyle(color: Colors.grey))));
+            if (snap.hasError) {
+              return SliverToBoxAdapter(
+                child: Center(
+                  child: Text(
+                    '錯誤：${snap.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              );
+            }
+            if (!snap.hasData) {
+              return const SliverToBoxAdapter(
+                child: Center(child: Text('載入中...')),
+              );
+            }
+            if (snap.data!.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    '目前沒有待審核的許願',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              );
+            }
             return SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _WishReviewCard(wish: snap.data![i], wishService: _wishService),
+                (_, i) => _WishReviewCard(
+                  wish: snap.data![i],
+                  wishService: _wishService,
+                ),
                 childCount: snap.data!.length,
               ),
             );
@@ -379,33 +489,88 @@ class _WishScreenState extends State<WishScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Text('已審核', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.grey.shade600)),
+            child: Text(
+              '已審核',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.grey.shade600,
+              ),
+            ),
           ),
         ),
         StreamBuilder<List<WishModel>>(
           stream: _wishService.watchReviewedWishes(),
           builder: (_, snap) {
-            if (!snap.hasData) return const SliverToBoxAdapter(child: Center(child: Text('載入中...')));
-            if (snap.data!.isEmpty) return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(16), child: Text('還沒有審核過任何許願', style: TextStyle(color: Colors.grey))));
+            if (!snap.hasData) {
+              return const SliverToBoxAdapter(
+                child: Center(child: Text('載入中...')),
+              );
+            }
+            if (snap.data!.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    '還沒有審核過任何許願',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              );
+            }
             return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) {
-                  final w = snap.data![i];
-                  return ListTile(
-                    title: Text(w.title),
-                    subtitle: w.reviewNote != null && w.reviewNote!.isNotEmpty
-                        ? Text('回覆：${w.reviewNote}')
-                        : null,
-                    trailing: _statusChip(w.status),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => WishDetailScreen(wish: w))),
-                  );
-                },
-                childCount: snap.data!.length,
-              ),
+              delegate: SliverChildBuilderDelegate((_, i) {
+                final w = snap.data![i];
+                return ListTile(
+                  title: Text(w.title),
+                  subtitle: w.reviewNote != null && w.reviewNote!.isNotEmpty
+                      ? Text('回覆：${w.reviewNote}')
+                      : null,
+                  trailing: _statusChip(w.status),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WishDetailScreen(wish: w),
+                    ),
+                  ),
+                );
+              }, childCount: snap.data!.length),
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _fulfilledCheckbox(WishModel wish) {
+    return Tooltip(
+      message: wish.isFulfilled ? '取消已實現' : '標記為已實現',
+      child: Checkbox(
+        value: wish.isFulfilled,
+        onChanged: (value) async {
+          try {
+            await _wishService.setWishFulfilled(
+              wishId: wish.id,
+              isFulfilled: value ?? false,
+            );
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('更新已實現狀態失敗：$e')));
+            }
+          }
+        },
+        activeColor: Colors.green,
+        checkColor: Colors.white,
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.green;
+          return Colors.white;
+        }),
+        side: BorderSide(color: Colors.grey.shade500, width: 1.4),
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
     );
   }
 
@@ -421,7 +586,11 @@ class _WishScreenState extends State<WishScreen> {
       ),
       child: Text(
         '$count',
-        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -432,7 +601,10 @@ class _WishScreenState extends State<WishScreen> {
       WishStatus.approved => ('通過', Colors.green),
       WishStatus.rejected => ('駁回', Colors.red),
     };
-    return Chip(label: Text(label), backgroundColor: color.withValues(alpha: 0.2));
+    return Chip(
+      label: Text(label),
+      backgroundColor: color.withValues(alpha: 0.2),
+    );
   }
 }
 
@@ -457,7 +629,9 @@ class _WishReviewCardState extends State<_WishReviewCard> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('錯誤：$e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('錯誤：$e')));
       }
     }
   }
@@ -471,20 +645,32 @@ class _WishReviewCardState extends State<_WishReviewCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.wish.title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(
+              widget.wish.title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 4),
-            if (widget.wish.price != null) Text('價格：${widget.wish.price}'),
-            Row(children: [
-              const Text('渴望程度：'),
-              ...List.generate(5, (i) => Icon(
-                i < widget.wish.heartRating ? Icons.favorite : Icons.favorite_border,
-                color: Colors.pink, size: 16,
-              )),
-            ]),
+            Text('價格：${widget.wish.price}'),
+            Row(
+              children: [
+                const Text('渴望程度：'),
+                ...List.generate(
+                  5,
+                  (i) => Icon(
+                    i < widget.wish.heartRating
+                        ? Icons.favorite
+                        : Icons.favorite_border,
+                    color: Colors.pink,
+                    size: 16,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 4),
             Text('理由：${widget.wish.reason}'),
-            Text('希望時間：${widget.wish.scheduledAt.toLocal().toString().split(' ')[0]}'),
+            Text(
+              '希望時間：${widget.wish.scheduledAt.toLocal().toString().split(' ')[0]}',
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _noteCtrl,
@@ -498,7 +684,9 @@ class _WishReviewCardState extends State<_WishReviewCard> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
                     onPressed: () => _review(WishStatus.approved),
                     child: const Text('通過'),
                   ),
@@ -506,7 +694,9 @@ class _WishReviewCardState extends State<_WishReviewCard> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
                     onPressed: () => _review(WishStatus.rejected),
                     child: const Text('駁回'),
                   ),

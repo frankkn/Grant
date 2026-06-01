@@ -93,16 +93,29 @@ class WishService {
     await _db.collection('wishes').doc(wishId).delete();
   }
 
+  /// 切換願望是否已實現
+  Future<void> setWishFulfilled({
+    required String wishId,
+    required bool isFulfilled,
+  }) async {
+    await _db.collection('wishes').doc(wishId).update({
+      'isFulfilled': isFulfilled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// 監聽我已審核的許願（通過或駁回）
   Stream<List<WishModel>> watchReviewedWishes() {
     return _db
         .collection('wishes')
         .where('partnerId', isEqualTo: _myUid)
         .snapshots()
-        .map((snap) => snap.docs
-            .map(WishModel.fromDoc)
-            .where((w) => w.status != WishStatus.pending)
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map(WishModel.fromDoc)
+              .where((w) => w.status != WishStatus.pending)
+              .toList(),
+        );
   }
 
   /// 審核許願（通過或駁回）
@@ -111,7 +124,9 @@ class WishService {
     required WishStatus decision,
     required String reviewNote,
   }) async {
-    if (decision == WishStatus.pending) throw ArgumentError('decision 不能是 pending');
+    if (decision == WishStatus.pending) {
+      throw ArgumentError('decision 不能是 pending');
+    }
     await _db.collection('wishes').doc(wishId).update({
       'status': decision.name,
       'reviewNote': reviewNote,
