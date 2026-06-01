@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../models/user_model.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
@@ -14,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _music = MusicService();
+  final _auth = AuthService();
   String _version = '';
 
   @override
@@ -35,6 +37,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(title: const Text('設定')),
       body: ListView(
         children: [
+          StreamBuilder<UserModel?>(
+            stream: _auth.watchCurrentUser(),
+            builder: (context, snap) {
+              final name = snap.data?.displayName;
+              return ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('暱稱'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (name != null)
+                      Text(name, style: const TextStyle(fontSize: 16)),
+                    const Icon(Icons.chevron_right, color: Colors.grey),
+                  ],
+                ),
+                onTap: name == null
+                    ? null
+                    : () => _showRenameDialog(context, name),
+              );
+            },
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.music_note),
             title: const Text('音量'),
@@ -78,10 +102,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showRenameDialog(BuildContext context, String currentName) {
+    showDialog(
+      context: context,
+      builder: (context) => _RenameDialog(currentName: currentName),
+    );
+  }
+
   void _showUnpairDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => _UnpairDialog(partnerId: widget.partnerId!),
+    );
+  }
+}
+
+class _RenameDialog extends StatefulWidget {
+  final String currentName;
+  const _RenameDialog({required this.currentName});
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final _ctrl = TextEditingController(text: widget.currentName);
+  bool _isLoading = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _ctrl.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = '請輸入你的暱稱');
+      return;
+    }
+    setState(() { _isLoading = true; _error = null; });
+    try {
+      await AuthService().updateDisplayName(name);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      setState(() { _error = '錯誤：$e'; _isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('修改暱稱'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _ctrl,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: '輸入你的暱稱',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) => _isLoading ? null : _save(),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(_error!, style: const TextStyle(color: Colors.red)),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _save,
+          child: _isLoading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('儲存'),
+        ),
+      ],
     );
   }
 }
