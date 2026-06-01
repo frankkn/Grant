@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 import 'home_screen.dart';
 
 class NameSetupScreen extends StatefulWidget {
@@ -23,10 +22,7 @@ class _NameSetupScreenState extends State<NameSetupScreen> {
     }
     setState(() { _isLoading = true; _error = null; });
     try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'displayName': name,
-      });
+      await AuthService().updateDisplayName(name);
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
       }
