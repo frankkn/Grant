@@ -15,6 +15,7 @@ class WishModel {
   final DateTime scheduledAt;
   final WishStatus status;
   final String? reviewNote;
+  final bool isFulfilled;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -31,6 +32,7 @@ class WishModel {
     required this.scheduledAt,
     required this.status,
     this.reviewNote,
+    this.isFulfilled = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -47,44 +49,56 @@ class WishModel {
       productUrl: data['productUrl'] as String?,
       description: data['description'] as String?,
       reason: data['reason'] as String,
-      scheduledAt: (data['scheduledAt'] as Timestamp).toDate(),
+      scheduledAt: _dateFromTimestamp(data['scheduledAt']),
       status: WishStatus.values.byName(data['status'] as String),
       reviewNote: data['reviewNote'] as String?,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      isFulfilled: (data['isFulfilled'] as bool?) ?? false,
+      createdAt: _dateFromTimestamp(data['createdAt']),
+      updatedAt: _dateFromTimestamp(data['updatedAt']),
     );
   }
 
-  Map<String, dynamic> toMap() => {
-        'requesterId': requesterId,
-        'partnerId': partnerId,
-        'title': title,
-        'price': price,
-        'heartRating': heartRating,
-        'productUrl': productUrl,
-        'description': description,
-        'reason': reason,
-        'scheduledAt': Timestamp.fromDate(scheduledAt),
-        'status': status.name,
-        'reviewNote': reviewNote,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'updatedAt': Timestamp.fromDate(updatedAt),
-      };
+  static DateTime _dateFromTimestamp(Object? value) {
+    if (value is Timestamp) return value.toDate();
+    return DateTime.now();
+  }
 
-  WishModel copyWith({WishStatus? status, String? reviewNote}) => WishModel(
-        id: id,
-        requesterId: requesterId,
-        partnerId: partnerId,
-        title: title,
-        price: price,
-        heartRating: heartRating,
-        productUrl: productUrl,
-        description: description,
-        reason: reason,
-        scheduledAt: scheduledAt,
-        status: status ?? this.status,
-        reviewNote: reviewNote ?? this.reviewNote,
-        createdAt: createdAt,
-        updatedAt: DateTime.now(),
-      );
+  Map<String, dynamic> toMap() => {
+    'requesterId': requesterId,
+    'partnerId': partnerId,
+    'title': title,
+    'price': price,
+    'heartRating': heartRating,
+    'productUrl': productUrl,
+    'description': description,
+    'reason': reason,
+    'scheduledAt': Timestamp.fromDate(scheduledAt),
+    'status': status.name,
+    'reviewNote': reviewNote,
+    'isFulfilled': isFulfilled,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'updatedAt': Timestamp.fromDate(updatedAt),
+  };
+
+  WishModel copyWith({
+    WishStatus? status,
+    String? reviewNote,
+    bool? isFulfilled,
+  }) => WishModel(
+    id: id,
+    requesterId: requesterId,
+    partnerId: partnerId,
+    title: title,
+    price: price,
+    heartRating: heartRating,
+    productUrl: productUrl,
+    description: description,
+    reason: reason,
+    scheduledAt: scheduledAt,
+    status: status ?? this.status,
+    reviewNote: reviewNote ?? this.reviewNote,
+    isFulfilled: isFulfilled ?? this.isFulfilled,
+    createdAt: createdAt,
+    updatedAt: DateTime.now(),
+  );
 }
