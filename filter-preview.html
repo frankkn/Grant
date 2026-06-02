@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FilterChip Preview — 可折疊篩選</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Noto Sans TC', sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    padding: 32px 16px;
+    gap: 28px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .phone {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    width: 360px;
+    overflow: hidden;
+  }
+  .phone-label {
+    text-align: center;
+    padding: 12px;
+    font-size: 13px;
+    color: #888;
+    background: #fafafa;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+  }
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid #eee;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 14px;
+    color: #aaa;
+  }
+  .tab.active {
+    color: #e91e8c;
+    border-bottom: 2px solid #e91e8c;
+    font-weight: 600;
+  }
+
+  /* ── Filter toggle bar ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    user-select: none;
+    gap: 6px;
+  }
+  .filter-bar:hover { background: #fafafa; }
+  .filter-icon { font-size: 16px; color: #bbb; transition: color 0.2s; }
+  .filter-icon.active { color: #e91e8c; }
+  .filter-bar-label { font-size: 13px; color: #999; flex: 1; }
+  .filter-bar-label.active { color: #e91e8c; font-weight: 600; }
+  .filter-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #e91e8c;
+    display: none;
+  }
+  .filter-dot.show { display: block; }
+  .filter-chevron {
+    font-size: 12px;
+    color: #bbb;
+    transition: transform 0.2s;
+  }
+  .filter-chevron.open { transform: rotate(180deg); }
+
+  /* ── Collapsible panel ── */
+  .filter-panel {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s ease, padding 0.2s;
+    background: #fafafa;
+    border-bottom: 0px solid #eee;
+  }
+  .filter-panel.open {
+    max-height: 300px;
+    border-bottom: 1px solid #eee;
+  }
+  .filter-section {
+    padding: 8px 12px 4px;
+  }
+  .filter-section-label {
+    font-size: 11px;
+    color: #bbb;
+    margin-bottom: 5px;
+    letter-spacing: 0.3px;
+  }
+  .wrap-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  /* ── Chips ── */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 11px;
+    border-radius: 20px;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    background: white;
+    color: #555;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .chip:hover { filter: brightness(0.96); }
+  .chip.cat-sel {
+    background: #fce4ec; border-color: #e91e8c;
+    color: #e91e8c; font-weight: 600;
+  }
+  .chip.cat-sel::before { content: '✓ '; font-size: 11px; }
+
+  .chip.s-all.sel    { background: #eeeeee; border-color: #9e9e9e; color: #424242; font-weight:600; }
+  .chip.s-pending.sel  { background: rgba(255,152,0,.18); border-color: #f57c00; color: #e65100; font-weight:600; }
+  .chip.s-approved.sel { background: rgba(76,175,80,.18);  border-color: #388e3c; color: #2e7d32; font-weight:600; }
+  .chip.s-nego.sel     { background: rgba(255,87,34,.18);  border-color: #e64a19; color: #bf360c; font-weight:600; }
+  .chip.s-rejected.sel { background: rgba(244,67,54,.18);  border-color: #c62828; color: #b71c1c; font-weight:600; }
+  .chip.s-all.sel::before,
+  .chip.s-pending.sel::before,
+  .chip.s-approved.sel::before,
+  .chip.s-nego.sel::before,
+  .chip.s-rejected.sel::before { content: '✓ '; font-size: 11px; }
+
+  /* ── List ── */
+  .section-label {
+    padding: 10px 16px 4px;
+    font-size: 11px; color: #bbb;
+    font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .list-item {
+    display: flex; align-items: center;
+    padding: 11px 16px;
+    border-bottom: 1px solid #f5f5f5;
+    gap: 10px;
+  }
+  .item-info { flex: 1; }
+  .item-title { font-size: 14px; font-weight: 500; }
+  .item-sub   { font-size: 12px; color: #e91e8c; margin-top: 2px; }
+  .badge {
+    font-size: 11px; padding: 3px 9px;
+    border-radius: 12px; white-space: nowrap;
+  }
+  .b-pending  { background: rgba(255,152,0,.15); color: #e65100; }
+  .b-approved { background: rgba(76,175,80,.15);  color: #2e7d32; }
+  .b-nego     { background: rgba(255,87,34,.15);  color: #bf360c; }
+  .b-rejected { background: rgba(244,67,54,.15);  color: #b71c1c; }
+  .empty { padding: 16px; color: #ccc; font-size: 13px; text-align: center; }
+  .divider { height:1px; background:#f0f0f0; }
+</style>
+</head>
+<body>
+
+<!-- 我的許願 tab -->
+<div class="phone">
+  <div class="phone-label">我的許願 tab</div>
+  <div class="tab-bar">
+    <div class="tab active">我的許願</div>
+    <div class="tab">審核許願</div>
+    <div class="tab">回憶牆</div>
+  </div>
+
+  <!-- 篩選按鈕列 -->
+  <div class="filter-bar" onclick="togglePanel('p1')">
+    <span class="filter-icon" id="icon1">⚙</span>
+    <span class="filter-bar-label" id="bar-label1">篩選</span>
+    <span class="filter-dot" id="dot1"></span>
+    <span class="filter-chevron" id="chev1">▼</span>
+  </div>
+
+  <!-- 可折疊篩選面板 -->
+  <div class="filter-panel" id="p1">
+    <div class="filter-section">
+      <div class="filter-section-label">類別</div>
+      <div class="wrap-chips" id="cat1">
+        <div class="chip cat-sel" data-g="c1" data-v="all">全部</div>
+        <div class="chip" data-g="c1" data-v="約會">約會</div>
+        <div class="chip" data-g="c1" data-v="禮物">禮物</div>
+        <div class="chip" data-g="c1" data-v="吃飯">吃飯</div>
+        <div class="chip" data-g="c1" data-v="旅行">旅行</div>
+        <div class="chip" data-g="c1" data-v="小事">小事</div>
+        <div class="chip" data-g="c1" data-v="撒嬌">撒嬌</div>
+        <div class="chip" data-g="c1" data-v="其他">其他</div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">狀態</div>
+      <div class="wrap-chips" id="st1">
+        <div class="chip s-all sel" data-g="s1" data-v="all">全部狀態</div>
+        <div class="chip s-pending"  data-g="s1" data-v="pending">審核中</div>
+        <div class="chip s-approved" data-g="s1" data-v="approved">通過</div>
+        <div class="chip s-nego"     data-g="s1" data-v="nego">協商中</div>
+        <div class="chip s-rejected" data-g="s1" data-v="rejected">駁回</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="list1">
+    <div class="list-item" data-cat="禮物" data-status="pending">
+      <div class="item-info"><div class="item-title">新款 AirPods Pro</div><div class="item-sub">禮物</div></div>
+      <div class="badge b-pending">審核中</div>
+    </div>
+    <div class="list-item" data-cat="旅行" data-status="approved">
+      <div class="item-info"><div class="item-title">週末去墾丁</div><div class="item-sub">旅行</div></div>
+      <div class="badge b-approved">通過</div>
+    </div>
+    <div class="list-item" data-cat="撒嬌" data-status="approved">
+      <div class="item-info"><div class="item-title">抱抱十分鐘</div><div class="item-sub">撒嬌</div></div>
+      <div class="badge b-approved">通過</div>
+    </div>
+    <div class="list-item" data-cat="吃飯" data-status="nego">
+      <div class="item-info"><div class="item-title">去吃燒肉</div><div class="item-sub">吃飯</div></div>
+      <div class="badge b-nego">協商中</div>
+    </div>
+    <div class="list-item" data-cat="禮物" data-status="rejected">
+      <div class="item-info"><div class="item-title">Switch 2</div><div class="item-sub">禮物</div></div>
+      <div class="badge b-rejected">駁回</div>
+    </div>
+    <div class="empty" id="empty1" style="display:none">沒有符合條件的許願</div>
+  </div>
+</div>
+
+<!-- 審核許願 tab -->
+<div class="phone">
+  <div class="phone-label">審核許願 tab</div>
+  <div class="tab-bar">
+    <div class="tab">我的許願</div>
+    <div class="tab active">審核許願</div>
+    <div class="tab">回憶牆</div>
+  </div>
+
+  <div class="filter-bar" onclick="togglePanel('p2')">
+    <span class="filter-icon" id="icon2">⚙</span>
+    <span class="filter-bar-label" id="bar-label2">篩選</span>
+    <span class="filter-dot" id="dot2"></span>
+    <span class="filter-chevron" id="chev2">▼</span>
+  </div>
+
+  <div class="filter-panel" id="p2">
+    <div class="filter-section">
+      <div class="filter-section-label">類別</div>
+      <div class="wrap-chips" id="cat2">
+        <div class="chip cat-sel" data-g="c2" data-v="all">全部</div>
+        <div class="chip" data-g="c2" data-v="約會">約會</div>
+        <div class="chip" data-g="c2" data-v="禮物">禮物</div>
+        <div class="chip" data-g="c2" data-v="吃飯">吃飯</div>
+        <div class="chip" data-g="c2" data-v="旅行">旅行</div>
+        <div class="chip" data-g="c2" data-v="小事">小事</div>
+        <div class="chip" data-g="c2" data-v="撒嬌">撒嬌</div>
+        <div class="chip" data-g="c2" data-v="其他">其他</div>
+      </div>
+    </div>
+    <div class="filter-section">
+      <div class="filter-section-label">狀態</div>
+      <div class="wrap-chips" id="st2">
+        <div class="chip s-all sel" data-g="s2" data-v="all">全部狀態</div>
+        <div class="chip s-pending"  data-g="s2" data-v="pending">審核中</div>
+        <div class="chip s-approved" data-g="s2" data-v="approved">通過</div>
+        <div class="chip s-nego"     data-g="s2" data-v="nego">協商中</div>
+        <div class="chip s-rejected" data-g="s2" data-v="rejected">駁回</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="section-pending2">
+    <div class="section-label">待審核</div>
+    <div class="list-item" data-cat="約會" data-status="pending">
+      <div class="item-info"><div class="item-title">去迪士尼樂園</div><div class="item-sub">約會</div></div>
+      <div class="badge b-pending">審核中</div>
+    </div>
+    <div class="list-item" data-cat="禮物" data-status="pending">
+      <div class="item-info"><div class="item-title">香水</div><div class="item-sub">禮物</div></div>
+      <div class="badge b-pending">審核中</div>
+    </div>
+  </div>
+
+  <div id="section-reviewed2">
+    <div class="divider"></div>
+    <div class="section-label">已審核</div>
+    <div class="list-item" data-cat="旅行" data-status="approved">
+      <div class="item-info"><div class="item-title">去日本</div><div class="item-sub">旅行</div></div>
+      <div class="badge b-approved">通過</div>
+    </div>
+    <div class="list-item" data-cat="吃飯" data-status="nego">
+      <div class="item-info"><div class="item-title">吃法式料理</div><div class="item-sub">吃飯</div></div>
+      <div class="badge b-nego">協商中</div>
+    </div>
+    <div class="list-item" data-cat="禮物" data-status="rejected">
+      <div class="item-info"><div class="item-title">鑽戒</div><div class="item-sub">禮物</div></div>
+      <div class="badge b-rejected">駁回</div>
+    </div>
+    <div class="empty" id="empty-reviewed2" style="display:none">沒有符合條件的許願</div>
+  </div>
+</div>
+
+<script>
+  const st = {
+    c1: 'all', s1: 'all',
+    c2: 'all', s2: 'all',
+  };
+
+  function togglePanel(id) {
+    const panel = document.getElementById(id);
+    const n = id.slice(-1);
+    const chev = document.getElementById('chev' + n);
+    panel.classList.toggle('open');
+    chev.classList.toggle('open');
+  }
+
+  function updateDot(n) {
+    const hasFilter = st['c' + n] !== 'all' || st['s' + n] !== 'all';
+    document.getElementById('dot' + n).classList.toggle('show', hasFilter);
+    document.getElementById('icon' + n).classList.toggle('active', hasFilter);
+    const label = document.getElementById('bar-label' + n);
+    if (hasFilter) {
+      const parts = [];
+      if (st['c' + n] !== 'all') parts.push(st['c' + n]);
+      if (st['s' + n] !== 'all') {
+        const map = { pending:'審核中', approved:'通過', nego:'協商中', rejected:'駁回' };
+        parts.push(map[st['s' + n]]);
+      }
+      label.textContent = '篩選：' + parts.join(' · ');
+      label.classList.add('active');
+    } else {
+      label.textContent = '篩選';
+      label.classList.remove('active');
+    }
+  }
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const g = chip.dataset.g;
+      const v = chip.dataset.v;
+      if (!g) return;
+      st[g] = (st[g] === v && v !== 'all') ? 'all' : v;
+
+      document.querySelectorAll(`[data-g="${g}"]`).forEach(c => {
+        const sel = c.dataset.v === st[g];
+        // category chips
+        if (g.startsWith('c')) {
+          c.classList.toggle('cat-sel', sel);
+        } else {
+          // status chips — keep type class, toggle sel
+          c.classList.toggle('sel', sel);
+        }
+      });
+
+      const n = g.slice(-1);
+      updateDot(n);
+      if (n === '1') updateList1();
+      else updateReview();
+    });
+  });
+
+  function updateList1() {
+    const cat = st.c1, status = st.s1;
+    let vis = 0;
+    document.querySelectorAll('#list1 .list-item').forEach(item => {
+      const show = (cat === 'all' || item.dataset.cat === cat) &&
+                   (status === 'all' || item.dataset.status === status);
+      item.style.display = show ? '' : 'none';
+      if (show) vis++;
+    });
+    document.getElementById('empty1').style.display = vis === 0 ? '' : 'none';
+  }
+
+  function updateReview() {
+    const cat = st.c2, status = st.s2;
+
+    const showPending  = status === 'all' || status === 'pending';
+    const showReviewed = status === 'all' || status !== 'pending';
+
+    document.getElementById('section-pending2').style.display  = showPending  ? '' : 'none';
+    document.getElementById('section-reviewed2').style.display = showReviewed ? '' : 'none';
+
+    if (showReviewed) {
+      let vis = 0;
+      document.querySelectorAll('#section-reviewed2 .list-item').forEach(item => {
+        const show = (cat === 'all' || item.dataset.cat === cat) &&
+                     (status === 'all' || item.dataset.status === status);
+        item.style.display = show ? '' : 'none';
+        if (show) vis++;
+      });
+      document.getElementById('empty-reviewed2').style.display = vis === 0 ? '' : 'none';
+    }
+  }
+</script>
+</body>
+</html>
