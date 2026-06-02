@@ -30,9 +30,10 @@ class WishDetailScreen extends StatelessWidget {
 
   Widget _statusBanner(WishStatus status, String? reviewNote) {
     final (label, color) = switch (status) {
-      WishStatus.pending => ('審核中', Colors.orange),
-      WishStatus.approved => ('已通過 ✓', Colors.green),
-      WishStatus.rejected => ('已駁回', Colors.red),
+      WishStatus.pending      => ('審核中',   Colors.orange),
+      WishStatus.approved     => ('已通過 ✓', Colors.green),
+      WishStatus.rejected     => ('已駁回',   Colors.red),
+      WishStatus.negotiating  => ('協商中 🤝', Colors.deepOrange),
     };
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -48,6 +49,10 @@ class WishDetailScreen extends StatelessWidget {
           if (reviewNote != null && reviewNote.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('另一半的回覆：$reviewNote', style: TextStyle(color: color)),
+          ],
+          if (status == WishStatus.negotiating && wish.negotiationNote != null && wish.negotiationNote!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('修改提案：${wish.negotiationNote}', style: TextStyle(color: color)),
           ],
         ],
       ),

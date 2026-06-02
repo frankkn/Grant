@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum WishStatus { pending, approved, rejected }
+enum WishStatus { pending, approved, rejected, negotiating }
 
 class WishModel {
   final String id;
@@ -15,6 +15,7 @@ class WishModel {
   final DateTime scheduledAt;
   final WishStatus status;
   final String? reviewNote;
+  final String? negotiationNote;
   final bool isFulfilled;
   final String? fulfillmentNote;
   final DateTime createdAt;
@@ -33,6 +34,7 @@ class WishModel {
     required this.scheduledAt,
     required this.status,
     this.reviewNote,
+    this.negotiationNote,
     this.isFulfilled = false,
     this.fulfillmentNote,
     required this.createdAt,
@@ -54,6 +56,7 @@ class WishModel {
       scheduledAt: _dateFromTimestamp(data['scheduledAt']),
       status: WishStatus.values.byName(data['status'] as String),
       reviewNote: data['reviewNote'] as String?,
+      negotiationNote: data['negotiationNote'] as String?,
       isFulfilled: (data['isFulfilled'] as bool?) ?? false,
       fulfillmentNote: data['fulfillmentNote'] as String?,
       createdAt: _dateFromTimestamp(data['createdAt']),
@@ -78,6 +81,7 @@ class WishModel {
     'scheduledAt': Timestamp.fromDate(scheduledAt),
     'status': status.name,
     'reviewNote': reviewNote,
+    'negotiationNote': negotiationNote,
     'isFulfilled': isFulfilled,
     'fulfillmentNote': fulfillmentNote,
     'createdAt': Timestamp.fromDate(createdAt),
@@ -87,6 +91,7 @@ class WishModel {
   WishModel copyWith({
     WishStatus? status,
     String? reviewNote,
+    String? negotiationNote,
     bool? isFulfilled,
     String? fulfillmentNote,
   }) => WishModel(
@@ -102,6 +107,7 @@ class WishModel {
     scheduledAt: scheduledAt,
     status: status ?? this.status,
     reviewNote: reviewNote ?? this.reviewNote,
+    negotiationNote: negotiationNote ?? this.negotiationNote,
     isFulfilled: isFulfilled ?? this.isFulfilled,
     fulfillmentNote: fulfillmentNote ?? this.fulfillmentNote,
     createdAt: createdAt,

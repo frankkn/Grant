@@ -343,6 +343,13 @@ class _WishScreenState extends State<WishScreen> {
           itemCount: snap.data!.length,
           itemBuilder: (_, i) {
             final w = snap.data![i];
+            // 協商中：用 Card 展開顯示提案 + 接受/放棄
+            if (w.status == WishStatus.negotiating) {
+              return _NegotiatingCard(
+                wish: w,
+                wishService: _wishService,
+              );
+            }
             return ListTile(
               title: Text(w.title),
               subtitle: Column(
@@ -353,9 +360,7 @@ class _WishScreenState extends State<WishScreen> {
                     children: List.generate(
                       5,
                       (i) => Icon(
-                        i < w.heartRating
-                            ? Icons.favorite
-                            : Icons.favorite_border,
+                        i < w.heartRating ? Icons.favorite : Icons.favorite_border,
                         color: Colors.pink,
                         size: 14,
                       ),
@@ -370,16 +375,10 @@ class _WishScreenState extends State<WishScreen> {
                   const SizedBox(width: 4),
                   if (w.status == WishStatus.pending)
                     IconButton(
-                      icon: const Icon(
-                        Icons.edit,
-                        size: 20,
-                        color: Colors.grey,
-                      ),
+                      icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => EditWishScreen(wish: w),
-                        ),
+                        MaterialPageRoute(builder: (_) => EditWishScreen(wish: w)),
                       ),
                     ),
                   IconButton(
@@ -680,13 +679,136 @@ class _WishScreenState extends State<WishScreen> {
 
   Widget _statusChip(WishStatus status) {
     final (label, color) = switch (status) {
-      WishStatus.pending => ('審核中', Colors.orange),
-      WishStatus.approved => ('通過', Colors.green),
-      WishStatus.rejected => ('駁回', Colors.red),
+      WishStatus.pending      => ('審核中', Colors.orange),
+      WishStatus.approved     => ('通過',   Colors.green),
+      WishStatus.rejected     => ('駁回',   Colors.red),
+      WishStatus.negotiating  => ('協商中', Colors.deepOrange),
     };
     return Chip(
       label: Text(label),
       backgroundColor: color.withValues(alpha: 0.2),
+    );
+  }
+}
+
+// ─── 協商中願望卡片（許願者視角） ───────────────────────────────
+class _NegotiatingCard extends StatelessWidget {
+  final WishModel wish;
+  final WishService wishService;
+  const _NegotiatingCard({required this.wish, required this.wishService});
+
+  Future<void> _accept(BuildContext context) async {
+    try {
+      await wishService.acceptNegotiation(wish.id);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('錯誤：$e')));
+      }
+    }
+  }
+
+  Future<void> _decline(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('放棄協商'),
+        content: const Text('確定放棄？願望將標記為駁回。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('放棄', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        await wishService.declineNegotiation(wish.id);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('錯誤：$e')));
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.deepOrange.shade200, width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.handshake_outlined, color: Colors.deepOrange, size: 18),
+                const SizedBox(width: 6),
+                const Text(
+                  '協商中',
+                  style: TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                Text(
+                  wish.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '另一半的提案：',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    wish.negotiationNote ?? '',
+                    style: const TextStyle(fontSize: 15),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    onPressed: () => _accept(context),
+                    child: const Text('接受提案', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                    onPressed: () => _decline(context),
+                    child: const Text('放棄'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -702,6 +824,15 @@ class _WishReviewCard extends StatefulWidget {
 
 class _WishReviewCardState extends State<_WishReviewCard> {
   final _noteCtrl = TextEditingController();
+  final _negotiationCtrl = TextEditingController();
+  bool _showNegotiationField = false;
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    _negotiationCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _review(WishStatus decision) async {
     try {
@@ -712,9 +843,27 @@ class _WishReviewCardState extends State<_WishReviewCard> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('錯誤：$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('錯誤：$e')));
+      }
+    }
+  }
+
+  Future<void> _proposeNegotiation() async {
+    final note = _negotiationCtrl.text.trim();
+    if (note.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請填寫修改提案內容')),
+      );
+      return;
+    }
+    try {
+      await widget.wishService.proposeNegotiation(
+        wishId: widget.wish.id,
+        negotiationNote: note,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('錯誤：$e')));
       }
     }
   }
@@ -740,9 +889,7 @@ class _WishReviewCardState extends State<_WishReviewCard> {
                 ...List.generate(
                   5,
                   (i) => Icon(
-                    i < widget.wish.heartRating
-                        ? Icons.favorite
-                        : Icons.favorite_border,
+                    i < widget.wish.heartRating ? Icons.favorite : Icons.favorite_border,
                     color: Colors.pink,
                     size: 16,
                   ),
@@ -751,41 +898,80 @@ class _WishReviewCardState extends State<_WishReviewCard> {
             ),
             const SizedBox(height: 4),
             Text('理由：${widget.wish.reason}'),
-            Text(
-              '希望時間：${widget.wish.scheduledAt.toLocal().toString().split(' ')[0]}',
-            ),
+            Text('希望時間：${widget.wish.scheduledAt.toLocal().toString().split(' ')[0]}'),
             const SizedBox(height: 12),
-            TextField(
-              controller: _noteCtrl,
-              decoration: const InputDecoration(
-                labelText: '審核理由（選填）',
-                border: OutlineInputBorder(),
+            // 協商模式：顯示協商輸入框；一般模式：顯示審核理由
+            if (_showNegotiationField) ...[
+              TextField(
+                controller: _negotiationCtrl,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: '修改提案內容 *',
+                  hintText: '例如：日期改週末？預算改 NT\$800？',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.orange, width: 2),
+                  ),
+                ),
+                minLines: 2,
+                maxLines: 4,
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      onPressed: _proposeNegotiation,
+                      child: const Text('送出提案', style: TextStyle(color: Colors.white)),
                     ),
-                    onPressed: () => _review(WishStatus.approved),
-                    child: const Text('通過'),
                   ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => setState(() => _showNegotiationField = false),
+                    child: const Text('取消'),
+                  ),
+                ],
+              ),
+            ] else ...[
+              TextField(
+                controller: _noteCtrl,
+                decoration: const InputDecoration(
+                  labelText: '審核理由（選填）',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+              ),
+              const SizedBox(height: 8),
+              // 按鈕順序：通過 | 修改提案 | 駁回
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      onPressed: () => _review(WishStatus.approved),
+                      child: const Text('通過', style: TextStyle(color: Colors.white)),
                     ),
-                    onPressed: () => _review(WishStatus.rejected),
-                    child: const Text('駁回'),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                      onPressed: () => setState(() => _showNegotiationField = true),
+                      child: const Text('修改提案', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      onPressed: () => _review(WishStatus.rejected),
+                      child: const Text('駁回', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

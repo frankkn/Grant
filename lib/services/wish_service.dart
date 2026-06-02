@@ -158,7 +158,7 @@ class WishService {
     return controller.stream;
   }
 
-  /// 監聽我已審核的許願（通過或駁回）
+  /// 監聽我已審核的許願（通過、駁回、協商中）
   Stream<List<WishModel>> watchReviewedWishes() {
     return _db
         .collection('wishes')
@@ -178,12 +178,40 @@ class WishService {
     required WishStatus decision,
     required String reviewNote,
   }) async {
-    if (decision == WishStatus.pending) {
-      throw ArgumentError('decision 不能是 pending');
+    if (decision == WishStatus.pending || decision == WishStatus.negotiating) {
+      throw ArgumentError('請使用正確的審核方法');
     }
     await _db.collection('wishes').doc(wishId).update({
       'status': decision.name,
       'reviewNote': reviewNote,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// 提案修改（B 送出協商條件）
+  Future<void> proposeNegotiation({
+    required String wishId,
+    required String negotiationNote,
+  }) async {
+    await _db.collection('wishes').doc(wishId).update({
+      'status': WishStatus.negotiating.name,
+      'negotiationNote': negotiationNote,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// A 接受協商提案 → 直接 approved
+  Future<void> acceptNegotiation(String wishId) async {
+    await _db.collection('wishes').doc(wishId).update({
+      'status': WishStatus.approved.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// A 放棄協商 → rejected
+  Future<void> declineNegotiation(String wishId) async {
+    await _db.collection('wishes').doc(wishId).update({
+      'status': WishStatus.rejected.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
