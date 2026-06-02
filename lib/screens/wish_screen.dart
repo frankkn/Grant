@@ -762,10 +762,11 @@ class _WishScreenState extends State<WishScreen> {
     required String? selected,
     required void Function(String?) onSelected,
   }) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Row(
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 4,
         children: [
           FilterChip(
             label: const Text('全部'),
@@ -774,16 +775,12 @@ class _WishScreenState extends State<WishScreen> {
             selectedColor: Colors.pink.shade100,
             checkmarkColor: Colors.pink,
           ),
-          const SizedBox(width: 6),
-          ...wishCategories.map((cat) => Padding(
-            padding: const EdgeInsets.only(right: 6),
-            child: FilterChip(
-              label: Text(cat),
-              selected: selected == cat,
-              onSelected: (_) => onSelected(selected == cat ? null : cat),
-              selectedColor: Colors.pink.shade100,
-              checkmarkColor: Colors.pink,
-            ),
+          ...wishCategories.map((cat) => FilterChip(
+            label: Text(cat),
+            selected: selected == cat,
+            onSelected: (_) => onSelected(selected == cat ? null : cat),
+            selectedColor: Colors.pink.shade100,
+            checkmarkColor: Colors.pink,
           )),
         ],
       ),
