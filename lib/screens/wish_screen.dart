@@ -842,7 +842,6 @@ class _WishScreenState extends State<WishScreen> {
             ),
           ),
         ),
-        const Divider(height: 1),
         // Collapsible panel
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
