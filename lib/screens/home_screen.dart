@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/music_service.dart';
 import '../services/wish_service.dart';
 import 'login_screen.dart';
+import 'memory_wall_screen.dart';
 import 'pair_screen.dart';
 import 'settings_screen.dart';
 import 'wish_screen.dart';
@@ -157,6 +158,17 @@ class HomeScreen extends StatelessWidget {
                                         onPressed: () => _openWish(context, user.partnerId!, 2),
                                       );
                                     },
+                                  ),
+                                  const SizedBox(height: 17),
+                                  _NotebookButton(
+                                    icon: Icons.auto_stories,
+                                    label: '回憶牆',
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const MemoryWallScreen(),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
