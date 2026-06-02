@@ -1,6 +1,6 @@
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.4.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.4.0)
+[![Version](https://img.shields.io/badge/version-v1.5.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.5.0)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
@@ -107,6 +107,7 @@ flutter build apk --debug
 
 | 版本 | 日期 | 更新內容 |
 |------|------|---------|
+| v1.5.0 | 2026-06-02 | 修正配對防護（已配對者不能重複配對，避免單向配對孤兒）、願望與回憶牆依當前對象正確篩選、秘密許願不再卡住審核紅點、「記住我」接上登入持久化、回憶牆時間軸顯示修正；新增 12 個單元測試 |
 | v1.4.0 | 2026-06-02 | 篩選改為可折疊面板（類別 + 狀態雙篩選，收起時顯示摘要）；修正公開/秘密許願卡片高度不一致、修正類別篩選 chip 被截斷問題 |
 | v1.3.0 | 2026-06-02 | 新增許願協商流程（修改提案 / 接受 / 放棄）、願望類別分類與篩選、公開 / 秘密許願模式、回憶牆類別統計；修正類別篩選已審核許願時的 crash |
 | v1.2.4 | 2026-06-01 | 通過願望新增「已實現」勾選狀態，可勾選或取消並同步保存 |
