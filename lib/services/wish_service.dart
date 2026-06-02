@@ -5,8 +5,12 @@ import '../models/wish_model.dart';
 import 'notification_service.dart';
 
 class WishService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  WishService({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   String get _myUid => _auth.currentUser!.uid;
 
@@ -52,23 +56,29 @@ class WishService {
     );
   }
 
-  /// 監聽我送出的許願
-  Stream<List<WishModel>> watchMyWishes() {
+  /// 監聽我送出給目前另一半的許願
+  Stream<List<WishModel>> watchMyWishes(String partnerId) {
     return _db
         .collection('wishes')
         .where('requesterId', isEqualTo: _myUid)
         .snapshots()
-        .map((snap) => snap.docs.map(WishModel.fromDoc).toList());
+        .map((snap) => snap.docs
+            .map(WishModel.fromDoc)
+            .where((w) => w.partnerId == partnerId)
+            .toList());
   }
 
-  /// 監聽待我審核的許願（另一半送給我的）
-  Stream<List<WishModel>> watchIncomingWishes() {
+  /// 監聽待我審核的許願（目前另一半送給我的）
+  Stream<List<WishModel>> watchIncomingWishes(String partnerId) {
     return _db
         .collection('wishes')
         .where('partnerId', isEqualTo: _myUid)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snap) => snap.docs.map(WishModel.fromDoc).toList());
+        .map((snap) => snap.docs
+            .map(WishModel.fromDoc)
+            .where((w) => w.requesterId == partnerId)
+            .toList());
   }
 
   /// 編輯許願（只允許 pending 狀態）
@@ -116,9 +126,9 @@ class WishService {
     });
   }
 
-  /// 監聽雙方所有已實現的願望（用於回憶牆）
+  /// 監聽和目前另一半之間所有已實現的願望（用於回憶牆）
   /// 合併「我許的願」和「我審核的願」兩個 query，用 onListen 確保不遺失初始事件
-  Stream<List<WishModel>> watchFulfilledWishes() {
+  Stream<List<WishModel>> watchFulfilledWishes(String partnerId) {
     List<WishModel> latestMine = [];
     List<WishModel> latestReviewed = [];
     StreamSubscription? sub1, sub2;
@@ -141,7 +151,10 @@ class WishService {
             .snapshots()
             .listen(
               (snap) {
-                latestMine = snap.docs.map(WishModel.fromDoc).toList();
+                latestMine = snap.docs
+                    .map(WishModel.fromDoc)
+                    .where((w) => w.partnerId == partnerId)
+                    .toList();
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -153,7 +166,10 @@ class WishService {
             .snapshots()
             .listen(
               (snap) {
-                latestReviewed = snap.docs.map(WishModel.fromDoc).toList();
+                latestReviewed = snap.docs
+                    .map(WishModel.fromDoc)
+                    .where((w) => w.requesterId == partnerId)
+                    .toList();
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -167,8 +183,8 @@ class WishService {
     return controller.stream;
   }
 
-  /// 監聽我已審核的許願（通過、駁回、協商中）
-  Stream<List<WishModel>> watchReviewedWishes() {
+  /// 監聽我已審核的許願（通過、駁回、協商中，且來自目前另一半）
+  Stream<List<WishModel>> watchReviewedWishes(String partnerId) {
     return _db
         .collection('wishes')
         .where('partnerId', isEqualTo: _myUid)
@@ -176,7 +192,8 @@ class WishService {
         .map(
           (snap) => snap.docs
               .map(WishModel.fromDoc)
-              .where((w) => w.status != WishStatus.pending)
+              .where((w) =>
+                  w.status != WishStatus.pending && w.requesterId == partnerId)
               .toList(),
         );
   }

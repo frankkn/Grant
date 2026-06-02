@@ -35,6 +35,15 @@ class AuthService {
     return userModel;
   }
 
+  /// 設定登入持久化（僅 web 有效）：
+  /// remember=true → LOCAL（關閉分頁仍保持登入）；false → SESSION（關閉分頁即登出）
+  Future<void> setWebPersistence(bool remember) async {
+    if (!kIsWeb) return;
+    await _auth.setPersistence(
+      remember ? Persistence.LOCAL : Persistence.SESSION,
+    );
+  }
+
   Future<void> login({required String email, required String password}) async {
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }

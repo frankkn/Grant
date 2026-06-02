@@ -47,6 +47,9 @@ class WishModel {
     required this.updatedAt,
   });
 
+  /// 秘密許願且尚未到解鎖日 → 對方還不能查看/審核（紅點也不該計入）
+  bool get isLockedSecret => isSecret && DateTime.now().isBefore(scheduledAt);
+
   factory WishModel.fromDoc(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return WishModel(

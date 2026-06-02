@@ -3,8 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PairService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  PairService({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   String _generateCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -46,6 +50,16 @@ class PairService {
 
     final partnerUid = data['ownerId'] as String;
     if (partnerUid == myUid) throw Exception('不能和自己配對');
+
+    // 確認雙方都尚未配對，避免覆蓋掉既有配對造成「單向配對」孤兒
+    final myDoc = await _db.collection('users').doc(myUid).get();
+    if ((myDoc.data()?['partnerId'] as String?) != null) {
+      throw Exception('你已經配對了，請先解除配對再重新配對');
+    }
+    final partnerDoc = await _db.collection('users').doc(partnerUid).get();
+    if ((partnerDoc.data()?['partnerId'] as String?) != null) {
+      throw Exception('對方已經和別人配對了');
+    }
 
     final batch = _db.batch();
 

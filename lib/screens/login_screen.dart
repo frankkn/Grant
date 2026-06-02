@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
           displayName: _nameCtrl.text.trim(),
         );
       } else {
+        await _auth.setWebPersistence(_rememberMe);
         await _auth.login(
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,

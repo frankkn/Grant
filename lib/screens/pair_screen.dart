@@ -29,7 +29,11 @@ class _PairScreenState extends State<PairScreen> {
   Future<void> _join() async {
     try {
       await _pairService.joinWithCode(_codeCtrl.text.trim());
-      setState(() => _message = '配對成功！');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('配對成功！ ❤️')),
+      );
+      Navigator.of(context).pop(); // 返回首頁，首頁會透過 stream 即時更新配對狀態
     } catch (e) {
       setState(() => _message = '錯誤：$e');
     }

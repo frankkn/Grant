@@ -149,12 +149,13 @@ class HomeScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 17),
                                   StreamBuilder<List<WishModel>>(
-                                    stream: WishService().watchIncomingWishes(),
+                                    stream: WishService()
+                                        .watchIncomingWishes(user.partnerId!),
                                     builder: (context, wishSnap) {
                                       return _NotebookButton(
                                         icon: Icons.fact_check_outlined,
                                         label: '審核願望',
-                                        badgeCount: wishSnap.data?.length ?? 0,
+                                        badgeCount: _reviewableCount(wishSnap.data),
                                         onPressed: () => _openWish(context, user.partnerId!, 2),
                                       );
                                     },
@@ -166,7 +167,9 @@ class HomeScreen extends StatelessWidget {
                                     onPressed: () => Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => const MemoryWallScreen(),
+                                        builder: (_) => MemoryWallScreen(
+                                          partnerId: user.partnerId!,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -185,6 +188,12 @@ class HomeScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// 可實際審核的待審願望數（排除尚未解鎖的秘密許願）
+  static int _reviewableCount(List<WishModel>? wishes) {
+    if (wishes == null) return 0;
+    return wishes.where((w) => !w.isLockedSecret).length;
   }
 
   void _openWish(BuildContext context, String partnerId, int index) {

@@ -178,7 +178,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
           if (_message != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_message!, style: TextStyle(color: _message!.startsWith('錯誤') || _message!.startsWith('請') ? Colors.red : Colors.green)),
+              child: Text(_message!, style: const TextStyle(color: Colors.red)),
             ),
           if (_isLoading)
             const Center(child: CircularProgressIndicator())

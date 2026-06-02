@@ -4,14 +4,15 @@ import '../services/auth_service.dart';
 import '../services/wish_service.dart';
 
 class MemoryWallScreen extends StatelessWidget {
-  const MemoryWallScreen({super.key});
+  final String partnerId;
+  const MemoryWallScreen({super.key, required this.partnerId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('回憶牆')),
       body: StreamBuilder<List<WishModel>>(
-        stream: WishService().watchFulfilledWishes(),
+        stream: WishService().watchFulfilledWishes(partnerId),
         builder: (context, snap) {
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -76,7 +77,13 @@ class MemoryWallScreen extends StatelessWidget {
                 ),
               ),
               // Timeline
-              ...List.generate(wishes.length, (i) => _MemoryCard(wish: wishes[i])),
+              ...List.generate(
+                wishes.length,
+                (i) => _MemoryCard(
+                  wish: wishes[i],
+                  isLast: i == wishes.length - 1,
+                ),
+              ),
             ],
           );
         },
@@ -87,7 +94,8 @@ class MemoryWallScreen extends StatelessWidget {
 
 class _MemoryCard extends StatelessWidget {
   final WishModel wish;
-  const _MemoryCard({required this.wish});
+  final bool isLast;
+  const _MemoryCard({required this.wish, this.isLast = false});
 
   @override
   Widget build(BuildContext context) {
@@ -96,10 +104,11 @@ class _MemoryCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 時間軸
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+          // 時間軸：圓點 + 連接線（線會自動延伸到卡片高度，最後一張不畫線）
           Column(
             children: [
               Container(
@@ -110,7 +119,10 @@ class _MemoryCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
               ),
-              Container(width: 2, height: 140, color: Colors.pink.shade100),
+              if (!isLast)
+                Expanded(
+                  child: Container(width: 2, color: Colors.pink.shade100),
+                ),
             ],
           ),
           const SizedBox(width: 12),
@@ -234,7 +246,8 @@ class _MemoryCard extends StatelessWidget {
               ),
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

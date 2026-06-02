@@ -156,9 +156,9 @@ class _WishScreenState extends State<WishScreen> {
               const Tab(text: '我的許願'),
               Tab(
                 child: StreamBuilder<List<WishModel>>(
-                  stream: _wishService.watchIncomingWishes(),
+                  stream: _wishService.watchIncomingWishes(widget.partnerId),
                   builder: (context, snap) {
-                    final count = snap.data?.length ?? 0;
+                    final count = _actionableCount(snap.data);
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -350,13 +350,7 @@ class _WishScreenState extends State<WishScreen> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     _message!,
-                    style: TextStyle(
-                      color:
-                          _message!.startsWith('錯誤') ||
-                              _message!.startsWith('請')
-                          ? Colors.red
-                          : Colors.green,
-                    ),
+                    style: const TextStyle(color: Colors.red),
                   ),
                 ),
               SizedBox(
@@ -375,7 +369,7 @@ class _WishScreenState extends State<WishScreen> {
 
   Widget _buildMyWishesTab() {
     return StreamBuilder<List<WishModel>>(
-      stream: _wishService.watchMyWishes(),
+      stream: _wishService.watchMyWishes(widget.partnerId),
       builder: (_, snap) {
         if (snap.hasError) {
           return Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red)));
@@ -532,7 +526,7 @@ class _WishScreenState extends State<WishScreen> {
             ),
           ),
           StreamBuilder<List<WishModel>>(
-            stream: _wishService.watchIncomingWishes(),
+            stream: _wishService.watchIncomingWishes(widget.partnerId),
             builder: (_, snap) {
               if (snap.hasError) {
                 return SliverToBoxAdapter(
@@ -564,8 +558,7 @@ class _WishScreenState extends State<WishScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (_, i) {
                     final w = pending[i];
-                    final isLocked = w.isSecret && DateTime.now().isBefore(w.scheduledAt);
-                    if (isLocked) {
+                    if (w.isLockedSecret) {
                       return FutureBuilder(
                         future: AuthService().fetchUser(w.requesterId),
                         builder: (_, snap) => _LockedSecretCard(
@@ -599,7 +592,7 @@ class _WishScreenState extends State<WishScreen> {
             ),
           ),
           StreamBuilder<List<WishModel>>(
-            stream: _wishService.watchReviewedWishes(),
+            stream: _wishService.watchReviewedWishes(widget.partnerId),
             builder: (_, snap) {
               if (!snap.hasData) {
                 return const SliverToBoxAdapter(
@@ -758,6 +751,12 @@ class _WishScreenState extends State<WishScreen> {
         }
       }
     }
+  }
+
+  /// 可實際審核的待審願望數（排除尚未解鎖的秘密許願，否則紅點永遠清不掉）
+  static int _actionableCount(List<WishModel>? wishes) {
+    if (wishes == null) return 0;
+    return wishes.where((w) => !w.isLockedSecret).length;
   }
 
   Widget _countChip(int count) {
