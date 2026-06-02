@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
+import '../services/auth_service.dart';
 import '../services/wish_service.dart';
 import 'edit_wish_screen.dart';
 import 'wish_detail_screen.dart';
@@ -22,6 +23,7 @@ class _WishScreenState extends State<WishScreen> {
   final _reasonCtrl = TextEditingController();
   int _heartRating = 0;
   String? _category;
+  bool _isSecret = false;
   DateTime _scheduledAt = DateTime.now().add(const Duration(days: 1));
   String? _message;
   // 篩選狀態
@@ -79,6 +81,7 @@ class _WishScreenState extends State<WishScreen> {
         reason: reason,
         scheduledAt: _scheduledAt,
         category: _category!,
+        isSecret: _isSecret,
       );
       _titleCtrl.clear();
       _priceCtrl.clear();
@@ -88,6 +91,7 @@ class _WishScreenState extends State<WishScreen> {
       setState(() {
         _heartRating = 0;
         _category = null;
+        _isSecret = false;
         _message = null;
       });
       if (mounted) {
@@ -244,6 +248,16 @@ class _WishScreenState extends State<WishScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
+                '許願方式 *',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              WishTypeSelector(
+                isSecret: _isSecret,
+                onChanged: (val) => setState(() => _isSecret = val),
+              ),
+              const SizedBox(height: 24),
+              const Text(
                 '商品網址',
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
@@ -395,7 +409,15 @@ class _WishScreenState extends State<WishScreen> {
           return _NegotiatingCard(wish: w, wishService: _wishService);
         }
         return ListTile(
-          title: Text(w.title),
+          title: Row(
+            children: [
+              if (w.isSecret) ...[
+                const Icon(Icons.lock_outline, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+              ],
+              Expanded(child: Text(w.title)),
+            ],
+          ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -523,7 +545,20 @@ class _WishScreenState extends State<WishScreen> {
             }
             return SliverList(
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _WishReviewCard(wish: pending[i], wishService: _wishService),
+                (_, i) {
+                  final w = pending[i];
+                  final isLocked = w.isSecret && DateTime.now().isBefore(w.scheduledAt);
+                  if (isLocked) {
+                    return FutureBuilder(
+                      future: AuthService().fetchUser(w.requesterId),
+                      builder: (_, snap) => _LockedSecretCard(
+                        wish: w,
+                        requesterName: snap.data?.displayName,
+                      ),
+                    );
+                  }
+                  return _WishReviewCard(wish: w, wishService: _wishService);
+                },
                 childCount: pending.length,
               ),
             );
@@ -1050,6 +1085,161 @@ class _WishReviewCardState extends State<_WishReviewCard> {
                 ],
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 公開 / 秘密 選項卡 ──────────────────────────────────────────
+class WishTypeSelector extends StatelessWidget {
+  final bool isSecret;
+  final ValueChanged<bool> onChanged;
+  const WishTypeSelector({required this.isSecret, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: WishTypeCard(
+          icon: Icons.visibility_outlined,
+          title: '公開許願',
+          desc: '讓另一半馬上知道你想要什麼',
+          selected: !isSecret,
+          onTap: () => onChanged(false),
+        )),
+        const SizedBox(width: 10),
+        Expanded(child: WishTypeCard(
+          icon: Icons.lock_outline,
+          title: '秘密許願',
+          desc: '讓另一半帶著期待，到日期才知道驚喜是什麼',
+          selected: isSecret,
+          onTap: () => onChanged(true),
+        )),
+      ],
+    );
+  }
+}
+
+class WishTypeCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String desc;
+  final bool selected;
+  final VoidCallback onTap;
+  const WishTypeCard({
+    required this.icon, required this.title, required this.desc,
+    required this.selected, required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? Colors.pink.shade50 : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? Colors.pink : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: selected ? Colors.pink : Colors.grey, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: selected ? Colors.pink : Colors.grey.shade700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── 審核許願：秘密許願鎖定卡（B 視角，解鎖日前） ────────────────
+class _LockedSecretCard extends StatelessWidget {
+  final WishModel wish;
+  final String? requesterName;
+  const _LockedSecretCard({required this.wish, this.requesterName});
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr = wish.scheduledAt.toLocal().toString().split(' ')[0];
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.lock_outline, color: Colors.grey, size: 18),
+                const SizedBox(width: 6),
+                const Text(
+                  '秘密心願',
+                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                ),
+                const Spacer(),
+                if (wish.category != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(wish.category!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '${requesterName ?? '對方'} 有個心願想在 $dateStr 解鎖',
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: List.generate(5, (i) => Icon(
+                i < wish.heartRating ? Icons.favorite : Icons.favorite_border,
+                color: Colors.pink.shade200,
+                size: 16,
+              )),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.schedule, size: 14, color: Colors.grey.shade500),
+                  const SizedBox(width: 6),
+                  Text(
+                    '將在 $dateStr 自動解鎖',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

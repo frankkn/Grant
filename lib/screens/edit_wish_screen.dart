@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/wish_service.dart';
+import 'wish_screen.dart' show WishTypeSelector;
 
 class EditWishScreen extends StatefulWidget {
   final WishModel wish;
@@ -19,6 +20,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
   late final _reasonCtrl = TextEditingController(text: widget.wish.reason);
   late int _heartRating = widget.wish.heartRating;
   late String? _category = widget.wish.category;
+  late bool _isSecret = widget.wish.isSecret;
   late DateTime _scheduledAt = widget.wish.scheduledAt;
   bool _isLoading = false;
   String? _message;
@@ -57,6 +59,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         reason: reason,
         scheduledAt: _scheduledAt,
         category: _category!,
+        isSecret: _isSecret,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -121,6 +124,13 @@ class _EditWishScreenState extends State<EditWishScreen> {
                 checkmarkColor: Colors.pink,
               );
             }).toList(),
+          ),
+          const SizedBox(height: 24),
+          const Text('許願方式 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 8),
+          WishTypeSelector(
+            isSecret: _isSecret,
+            onChanged: (val) => setState(() => _isSecret = val),
           ),
           const SizedBox(height: 24),
           const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),
