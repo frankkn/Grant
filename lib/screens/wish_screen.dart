@@ -623,7 +623,7 @@ class _WishScreenState extends State<WishScreen> {
                     ),
                   ),
                 );
-              }, childCount: snap.data!.length),
+              }, childCount: reviewed.length),
             );
           },
         ),
