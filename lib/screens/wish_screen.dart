@@ -523,9 +523,18 @@ class _WishScreenState extends State<WishScreen> {
                 final w = snap.data![i];
                 return ListTile(
                   title: Text(w.title),
-                  subtitle: w.reviewNote != null && w.reviewNote!.isNotEmpty
-                      ? Text('回覆：${w.reviewNote}')
-                      : null,
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (w.reviewNote != null && w.reviewNote!.isNotEmpty)
+                        Text('回覆：${w.reviewNote}'),
+                      if (w.fulfillmentNote != null && w.fulfillmentNote!.isNotEmpty)
+                        Text(
+                          '✨ ${w.fulfillmentNote}',
+                          style: const TextStyle(color: Colors.pink),
+                        ),
+                    ],
+                  ),
                   trailing: _statusChip(w.status),
                   onTap: () => Navigator.push(
                     context,
@@ -548,16 +557,21 @@ class _WishScreenState extends State<WishScreen> {
       child: Checkbox(
         value: wish.isFulfilled,
         onChanged: (value) async {
-          try {
-            await _wishService.setWishFulfilled(
-              wishId: wish.id,
-              isFulfilled: value ?? false,
-            );
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text('更新已實現狀態失敗：$e')));
+          final next = value ?? false;
+          if (next) {
+            await _showFulfillDialog(wish);
+          } else {
+            try {
+              await _wishService.setWishFulfilled(
+                wishId: wish.id,
+                isFulfilled: false,
+              );
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('更新已實現狀態失敗：$e')),
+                );
+              }
             }
           }
         },
@@ -572,6 +586,75 @@ class _WishScreenState extends State<WishScreen> {
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
+  }
+
+  Future<void> _showFulfillDialog(WishModel wish) async {
+    final noteCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.favorite, color: Colors.pinkAccent, size: 48),
+            const SizedBox(height: 12),
+            const Text(
+              '願望實現了！',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '想對另一半說什麼嗎？',
+              style: TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: noteCtrl,
+              decoration: InputDecoration(
+                hintText: '謝謝你 ❤️',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.pink, width: 2),
+                ),
+              ),
+              maxLines: 3,
+              maxLength: 100,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('略過'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
+            child: const Text('送出', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      try {
+        final note = noteCtrl.text.trim();
+        await _wishService.setWishFulfilled(
+          wishId: wish.id,
+          isFulfilled: true,
+          fulfillmentNote: note.isEmpty ? null : note,
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('更新已實現狀態失敗：$e')),
+          );
+        }
+      }
+    }
   }
 
   Widget _countChip(int count) {

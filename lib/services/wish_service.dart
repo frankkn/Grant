@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/wish_model.dart';
@@ -93,15 +94,68 @@ class WishService {
     await _db.collection('wishes').doc(wishId).delete();
   }
 
-  /// 切換願望是否已實現
+  /// 切換願望是否已實現，可附上感謝話
   Future<void> setWishFulfilled({
     required String wishId,
     required bool isFulfilled,
+    String? fulfillmentNote,
   }) async {
     await _db.collection('wishes').doc(wishId).update({
       'isFulfilled': isFulfilled,
+      if (fulfillmentNote != null) 'fulfillmentNote': fulfillmentNote,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// 監聽雙方所有已實現的願望（用於回憶牆）
+  /// 合併「我許的願」和「我審核的願」兩個 query，用 onListen 確保不遺失初始事件
+  Stream<List<WishModel>> watchFulfilledWishes() {
+    List<WishModel> latestMine = [];
+    List<WishModel> latestReviewed = [];
+    StreamSubscription? sub1, sub2;
+
+    List<WishModel> merged() {
+      final seen = <String>{};
+      return [...latestMine, ...latestReviewed]
+          .where((w) => seen.add(w.id))
+          .toList()
+        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    }
+
+    late StreamController<List<WishModel>> controller;
+    controller = StreamController<List<WishModel>>(
+      onListen: () {
+        sub1 = _db
+            .collection('wishes')
+            .where('requesterId', isEqualTo: _myUid)
+            .where('isFulfilled', isEqualTo: true)
+            .snapshots()
+            .listen(
+              (snap) {
+                latestMine = snap.docs.map(WishModel.fromDoc).toList();
+                if (!controller.isClosed) controller.add(merged());
+              },
+              onError: controller.addError,
+            );
+        sub2 = _db
+            .collection('wishes')
+            .where('partnerId', isEqualTo: _myUid)
+            .where('isFulfilled', isEqualTo: true)
+            .snapshots()
+            .listen(
+              (snap) {
+                latestReviewed = snap.docs.map(WishModel.fromDoc).toList();
+                if (!controller.isClosed) controller.add(merged());
+              },
+              onError: controller.addError,
+            );
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   /// 監聽我已審核的許願（通過或駁回）

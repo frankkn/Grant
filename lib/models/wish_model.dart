@@ -16,6 +16,7 @@ class WishModel {
   final WishStatus status;
   final String? reviewNote;
   final bool isFulfilled;
+  final String? fulfillmentNote;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -33,6 +34,7 @@ class WishModel {
     required this.status,
     this.reviewNote,
     this.isFulfilled = false,
+    this.fulfillmentNote,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -53,6 +55,7 @@ class WishModel {
       status: WishStatus.values.byName(data['status'] as String),
       reviewNote: data['reviewNote'] as String?,
       isFulfilled: (data['isFulfilled'] as bool?) ?? false,
+      fulfillmentNote: data['fulfillmentNote'] as String?,
       createdAt: _dateFromTimestamp(data['createdAt']),
       updatedAt: _dateFromTimestamp(data['updatedAt']),
     );
@@ -76,6 +79,7 @@ class WishModel {
     'status': status.name,
     'reviewNote': reviewNote,
     'isFulfilled': isFulfilled,
+    'fulfillmentNote': fulfillmentNote,
     'createdAt': Timestamp.fromDate(createdAt),
     'updatedAt': Timestamp.fromDate(updatedAt),
   };
@@ -84,6 +88,7 @@ class WishModel {
     WishStatus? status,
     String? reviewNote,
     bool? isFulfilled,
+    String? fulfillmentNote,
   }) => WishModel(
     id: id,
     requesterId: requesterId,
@@ -98,6 +103,7 @@ class WishModel {
     status: status ?? this.status,
     reviewNote: reviewNote ?? this.reviewNote,
     isFulfilled: isFulfilled ?? this.isFulfilled,
+    fulfillmentNote: fulfillmentNote ?? this.fulfillmentNote,
     createdAt: createdAt,
     updatedAt: DateTime.now(),
   );
