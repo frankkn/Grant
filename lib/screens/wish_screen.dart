@@ -28,7 +28,11 @@ class _WishScreenState extends State<WishScreen> {
   String? _message;
   // 篩選狀態
   String? _myWishesFilter;
+  WishStatus? _myWishesStatusFilter;
+  bool _myWishesFilterOpen = false;
   String? _reviewFilter;
+  WishStatus? _reviewStatusFilter;
+  bool _reviewFilterOpen = false;
 
   Future<void> _submit() async {
     final title = _titleCtrl.text.trim();
@@ -378,20 +382,27 @@ class _WishScreenState extends State<WishScreen> {
         }
         if (!snap.hasData) return const Center(child: Text('載入中...'));
 
-        final all = snap.data!;
-        final filtered = _myWishesFilter == null
-            ? all
-            : all.where((w) => w.category == _myWishesFilter).toList();
+        var filtered = snap.data!;
+        if (_myWishesFilter != null) {
+          filtered = filtered.where((w) => w.category == _myWishesFilter).toList();
+        }
+        if (_myWishesStatusFilter != null) {
+          filtered = filtered.where((w) => w.status == _myWishesStatusFilter).toList();
+        }
 
         return Column(
           children: [
-            _buildFilterChips(
-              selected: _myWishesFilter,
-              onSelected: (cat) => setState(() => _myWishesFilter = cat),
+            _buildFilterPanel(
+              isOpen: _myWishesFilterOpen,
+              onToggle: () => setState(() => _myWishesFilterOpen = !_myWishesFilterOpen),
+              selectedCat: _myWishesFilter,
+              onCatSelected: (cat) => setState(() => _myWishesFilter = cat),
+              selectedStatus: _myWishesStatusFilter,
+              onStatusSelected: (s) => setState(() => _myWishesStatusFilter = s),
             ),
             Expanded(
               child: filtered.isEmpty
-                  ? Center(child: Text(_myWishesFilter == null ? '還沒有送出許願' : '沒有「$_myWishesFilter」類別的許願'))
+                  ? const Center(child: Text('沒有符合條件的許願'))
                   : _buildMyWishesList(filtered),
             ),
           ],
@@ -495,101 +506,112 @@ class _WishScreenState extends State<WishScreen> {
   Widget _buildReviewTab() {
     return CustomScrollView(
       slivers: [
-        // 篩選 chips
-        SliverToBoxAdapter(child: _buildFilterChips(
-          selected: _reviewFilter,
-          onSelected: (cat) => setState(() => _reviewFilter = cat),
-        )),
-        // 待審核
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Text(
-              '待審核',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Colors.grey.shade600,
+          child: _buildFilterPanel(
+            isOpen: _reviewFilterOpen,
+            onToggle: () => setState(() => _reviewFilterOpen = !_reviewFilterOpen),
+            selectedCat: _reviewFilter,
+            onCatSelected: (cat) => setState(() => _reviewFilter = cat),
+            selectedStatus: _reviewStatusFilter,
+            onStatusSelected: (s) => setState(() => _reviewStatusFilter = s),
+          ),
+        ),
+        // 待審核（狀態篩選為非 pending 時隱藏）
+        if (_reviewStatusFilter == null || _reviewStatusFilter == WishStatus.pending) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Text(
+                '待審核',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.grey.shade600,
+                ),
               ),
             ),
           ),
-        ),
-        StreamBuilder<List<WishModel>>(
-          stream: _wishService.watchIncomingWishes(),
-          builder: (_, snap) {
-            if (snap.hasError) {
-              return SliverToBoxAdapter(
-                child: Center(
-                  child: Text(
-                    '錯誤：${snap.error}',
-                    style: const TextStyle(color: Colors.red),
+          StreamBuilder<List<WishModel>>(
+            stream: _wishService.watchIncomingWishes(),
+            builder: (_, snap) {
+              if (snap.hasError) {
+                return SliverToBoxAdapter(
+                  child: Center(
+                    child: Text(
+                      '錯誤：${snap.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
+                );
+              }
+              if (!snap.hasData) {
+                return const SliverToBoxAdapter(
+                  child: Center(child: Text('載入中...')),
+                );
+              }
+              final pending = _reviewFilter == null
+                  ? snap.data!
+                  : snap.data!.where((w) => w.category == _reviewFilter).toList();
+              if (pending.isEmpty) {
+                return const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('目前沒有待審核的許願', style: TextStyle(color: Colors.grey)),
+                  ),
+                );
+              }
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) {
+                    final w = pending[i];
+                    final isLocked = w.isSecret && DateTime.now().isBefore(w.scheduledAt);
+                    if (isLocked) {
+                      return FutureBuilder(
+                        future: AuthService().fetchUser(w.requesterId),
+                        builder: (_, snap) => _LockedSecretCard(
+                          wish: w,
+                          requesterName: snap.data?.displayName,
+                        ),
+                      );
+                    }
+                    return _WishReviewCard(wish: w, wishService: _wishService);
+                  },
+                  childCount: pending.length,
                 ),
               );
-            }
-            if (!snap.hasData) {
-              return const SliverToBoxAdapter(
-                child: Center(child: Text('載入中...')),
-              );
-            }
-            final pending = _reviewFilter == null
-                ? snap.data!
-                : snap.data!.where((w) => w.category == _reviewFilter).toList();
-            if (pending.isEmpty) {
-              return const SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('目前沒有待審核的許願', style: TextStyle(color: Colors.grey)),
-                ),
-              );
-            }
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (_, i) {
-                  final w = pending[i];
-                  final isLocked = w.isSecret && DateTime.now().isBefore(w.scheduledAt);
-                  if (isLocked) {
-                    return FutureBuilder(
-                      future: AuthService().fetchUser(w.requesterId),
-                      builder: (_, snap) => _LockedSecretCard(
-                        wish: w,
-                        requesterName: snap.data?.displayName,
-                      ),
-                    );
-                  }
-                  return _WishReviewCard(wish: w, wishService: _wishService);
-                },
-                childCount: pending.length,
-              ),
-            );
-          },
-        ),
+            },
+          ),
+        ],
 
-        // 已審核
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-            child: Text(
-              '已審核',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Colors.grey.shade600,
+        // 已審核（狀態篩選為 pending 時隱藏）
+        if (_reviewStatusFilter == null || _reviewStatusFilter != WishStatus.pending) ...[
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+              child: Text(
+                '已審核',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: Colors.grey.shade600,
+                ),
               ),
             ),
           ),
-        ),
-        StreamBuilder<List<WishModel>>(
-          stream: _wishService.watchReviewedWishes(),
-          builder: (_, snap) {
-            if (!snap.hasData) {
-              return const SliverToBoxAdapter(
-                child: Center(child: Text('載入中...')),
-              );
-            }
-            final reviewed = _reviewFilter == null
-                ? snap.data!
-                : snap.data!.where((w) => w.category == _reviewFilter).toList();
+          StreamBuilder<List<WishModel>>(
+            stream: _wishService.watchReviewedWishes(),
+            builder: (_, snap) {
+              if (!snap.hasData) {
+                return const SliverToBoxAdapter(
+                  child: Center(child: Text('載入中...')),
+                );
+              }
+              var reviewed = _reviewFilter == null
+                  ? snap.data!
+                  : snap.data!.where((w) => w.category == _reviewFilter).toList();
+              if (_reviewStatusFilter != null) {
+                reviewed = reviewed.where((w) => w.status == _reviewStatusFilter).toList();
+              }
             if (reviewed.isEmpty) {
               return const SliverToBoxAdapter(
                 child: Padding(
@@ -627,6 +649,7 @@ class _WishScreenState extends State<WishScreen> {
             );
           },
         ),
+        ],
       ],
     );
   }
@@ -758,32 +781,137 @@ class _WishScreenState extends State<WishScreen> {
     );
   }
 
-  Widget _buildFilterChips({
-    required String? selected,
-    required void Function(String?) onSelected,
+  Widget _buildFilterPanel({
+    required bool isOpen,
+    required VoidCallback onToggle,
+    required String? selectedCat,
+    required void Function(String?) onCatSelected,
+    required WishStatus? selectedStatus,
+    required void Function(WishStatus?) onStatusSelected,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
-        children: [
-          FilterChip(
-            label: const Text('全部'),
-            selected: selected == null,
-            onSelected: (_) => onSelected(null),
-            selectedColor: Colors.pink.shade100,
-            checkmarkColor: Colors.pink,
+    final hasFilter = selectedCat != null || selectedStatus != null;
+    const statuses = [
+      (WishStatus.pending,     '審核中', Colors.orange),
+      (WishStatus.approved,    '通過',   Colors.green),
+      (WishStatus.negotiating, '協商中', Colors.deepOrange),
+      (WishStatus.rejected,    '駁回',   Colors.red),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Toggle bar
+        InkWell(
+          onTap: onToggle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.tune,
+                  size: 18,
+                  color: hasFilter ? Colors.pink : Colors.grey,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    hasFilter
+                        ? '篩選：${[
+                            if (selectedCat != null) selectedCat,
+                            if (selectedStatus != null)
+                              switch (selectedStatus) {
+                                WishStatus.pending     => '審核中',
+                                WishStatus.approved    => '通過',
+                                WishStatus.negotiating => '協商中',
+                                WishStatus.rejected    => '駁回',
+                              },
+                          ].join(' · ')}'
+                        : '篩選',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: hasFilter ? Colors.pink : Colors.grey,
+                      fontWeight: hasFilter ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                AnimatedRotation(
+                  turns: isOpen ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(Icons.expand_more, size: 18, color: Colors.grey.shade400),
+                ),
+              ],
+            ),
           ),
-          ...wishCategories.map((cat) => FilterChip(
-            label: Text(cat),
-            selected: selected == cat,
-            onSelected: (_) => onSelected(selected == cat ? null : cat),
-            selectedColor: Colors.pink.shade100,
-            checkmarkColor: Colors.pink,
-          )),
-        ],
-      ),
+        ),
+        const Divider(height: 1),
+        // Collapsible panel
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          child: isOpen
+              ? Container(
+                  color: Colors.grey.shade50,
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('類別', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, letterSpacing: 0.3)),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          FilterChip(
+                            label: const Text('全部'),
+                            selected: selectedCat == null,
+                            onSelected: (_) => onCatSelected(null),
+                            selectedColor: Colors.pink.shade100,
+                            checkmarkColor: Colors.pink,
+                          ),
+                          ...wishCategories.map((cat) => FilterChip(
+                            label: Text(cat),
+                            selected: selectedCat == cat,
+                            onSelected: (_) => onCatSelected(selectedCat == cat ? null : cat),
+                            selectedColor: Colors.pink.shade100,
+                            checkmarkColor: Colors.pink,
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text('狀態', style: TextStyle(fontSize: 11, color: Colors.grey.shade500, letterSpacing: 0.3)),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          FilterChip(
+                            label: const Text('全部'),
+                            selected: selectedStatus == null,
+                            onSelected: (_) => onStatusSelected(null),
+                            selectedColor: Colors.grey.shade200,
+                            checkmarkColor: Colors.grey.shade700,
+                          ),
+                          ...statuses.map((s) {
+                            final (status, label, color) = s;
+                            return FilterChip(
+                              label: Text(label),
+                              selected: selectedStatus == status,
+                              onSelected: (_) => onStatusSelected(selectedStatus == status ? null : status),
+                              selectedColor: color.withValues(alpha: 0.2),
+                              checkmarkColor: color,
+                              labelStyle: selectedStatus == status
+                                  ? TextStyle(color: color, fontWeight: FontWeight.w600)
+                                  : null,
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        const Divider(height: 1),
+      ],
     );
   }
 
