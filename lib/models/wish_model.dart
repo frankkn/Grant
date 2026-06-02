@@ -16,6 +16,7 @@ class WishModel {
   final String reason;
   final DateTime scheduledAt;
   final WishStatus status;
+  final bool isSecret;
   final String? reviewNote;
   final String? category;
   final String? negotiationNote;
@@ -36,6 +37,7 @@ class WishModel {
     required this.reason,
     required this.scheduledAt,
     required this.status,
+    this.isSecret = false,
     this.reviewNote,
     this.category,
     this.negotiationNote,
@@ -59,6 +61,7 @@ class WishModel {
       reason: data['reason'] as String,
       scheduledAt: _dateFromTimestamp(data['scheduledAt']),
       status: WishStatus.values.byName(data['status'] as String),
+      isSecret: (data['isSecret'] as bool?) ?? false,
       reviewNote: data['reviewNote'] as String?,
       category: data['category'] as String?,
       negotiationNote: data['negotiationNote'] as String?,
@@ -85,6 +88,7 @@ class WishModel {
     'reason': reason,
     'scheduledAt': Timestamp.fromDate(scheduledAt),
     'status': status.name,
+    'isSecret': isSecret,
     'reviewNote': reviewNote,
     'category': category,
     'negotiationNote': negotiationNote,

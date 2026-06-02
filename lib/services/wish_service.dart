@@ -21,6 +21,7 @@ class WishService {
     required String reason,
     required DateTime scheduledAt,
     required String category,
+    bool isSecret = false,
   }) async {
     final now = DateTime.now();
     final ref = _db.collection('wishes').doc();
@@ -36,16 +37,18 @@ class WishService {
       reason: reason,
       scheduledAt: scheduledAt,
       status: WishStatus.pending,
+      isSecret: isSecret,
       category: category,
       createdAt: now,
       updatedAt: now,
     );
     await ref.set(wish.toMap());
 
-    // 發推播通知給另一半
+    // 秘密許願通知文字不透露內容
+    final notifyTitle = isSecret ? '🔒 有個秘密心願在等你…' : title;
     await NotificationService().sendWishNotification(
       toUid: partnerId,
-      wishTitle: title,
+      wishTitle: notifyTitle,
     );
   }
 
@@ -79,6 +82,7 @@ class WishService {
     required String reason,
     required DateTime scheduledAt,
     required String category,
+    bool isSecret = false,
   }) async {
     await _db.collection('wishes').doc(wishId).update({
       'title': title,
@@ -89,6 +93,7 @@ class WishService {
       'reason': reason,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
       'category': category,
+      'isSecret': isSecret,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
