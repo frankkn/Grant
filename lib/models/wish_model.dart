@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum WishStatus { pending, approved, rejected, negotiating }
 
+const wishCategories = ['約會', '禮物', '吃飯', '旅行', '小事', '撒嬌', '其他'];
+
 class WishModel {
   final String id;
   final String requesterId;
@@ -15,6 +17,7 @@ class WishModel {
   final DateTime scheduledAt;
   final WishStatus status;
   final String? reviewNote;
+  final String? category;
   final String? negotiationNote;
   final bool isFulfilled;
   final String? fulfillmentNote;
@@ -34,6 +37,7 @@ class WishModel {
     required this.scheduledAt,
     required this.status,
     this.reviewNote,
+    this.category,
     this.negotiationNote,
     this.isFulfilled = false,
     this.fulfillmentNote,
@@ -56,6 +60,7 @@ class WishModel {
       scheduledAt: _dateFromTimestamp(data['scheduledAt']),
       status: WishStatus.values.byName(data['status'] as String),
       reviewNote: data['reviewNote'] as String?,
+      category: data['category'] as String?,
       negotiationNote: data['negotiationNote'] as String?,
       isFulfilled: (data['isFulfilled'] as bool?) ?? false,
       fulfillmentNote: data['fulfillmentNote'] as String?,
@@ -81,6 +86,7 @@ class WishModel {
     'scheduledAt': Timestamp.fromDate(scheduledAt),
     'status': status.name,
     'reviewNote': reviewNote,
+    'category': category,
     'negotiationNote': negotiationNote,
     'isFulfilled': isFulfilled,
     'fulfillmentNote': fulfillmentNote,
@@ -91,6 +97,7 @@ class WishModel {
   WishModel copyWith({
     WishStatus? status,
     String? reviewNote,
+    String? category,
     String? negotiationNote,
     bool? isFulfilled,
     String? fulfillmentNote,
@@ -107,6 +114,7 @@ class WishModel {
     scheduledAt: scheduledAt,
     status: status ?? this.status,
     reviewNote: reviewNote ?? this.reviewNote,
+    category: category ?? this.category,
     negotiationNote: negotiationNote ?? this.negotiationNote,
     isFulfilled: isFulfilled ?? this.isFulfilled,
     fulfillmentNote: fulfillmentNote ?? this.fulfillmentNote,

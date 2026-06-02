@@ -18,6 +18,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
   late final _descriptionCtrl = TextEditingController(text: widget.wish.description ?? '');
   late final _reasonCtrl = TextEditingController(text: widget.wish.reason);
   late int _heartRating = widget.wish.heartRating;
+  late String? _category = widget.wish.category;
   late DateTime _scheduledAt = widget.wish.scheduledAt;
   bool _isLoading = false;
   String? _message;
@@ -32,6 +33,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
     if (title.isEmpty) { setState(() => _message = '請填寫「許下我的願望」'); return; }
     if (price.isEmpty) { setState(() => _message = '請填寫「費用參考」'); return; }
     if (_heartRating == 0) { setState(() => _message = '請選擇「心動指數」'); return; }
+    if (_category == null) { setState(() => _message = '請選擇「願望類別」'); return; }
     if (description.isEmpty) { setState(() => _message = '請填寫「商品描述」'); return; }
     if (reason.isEmpty) { setState(() => _message = '請填寫「我的理由」'); return; }
 
@@ -54,6 +56,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         description: description,
         reason: reason,
         scheduledAt: _scheduledAt,
+        category: _category!,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -101,6 +104,23 @@ class _EditWishScreenState extends State<EditWishScreen> {
                 ),
               ),
             )),
+          ),
+          const SizedBox(height: 24),
+          const Text('願望類別 *', style: TextStyle(fontSize: 14, color: Colors.grey)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: wishCategories.map((cat) {
+              final selected = _category == cat;
+              return ChoiceChip(
+                label: Text(cat),
+                selected: selected,
+                onSelected: (_) => setState(() => _category = cat),
+                selectedColor: Colors.pink.shade100,
+                checkmarkColor: Colors.pink,
+              );
+            }).toList(),
           ),
           const SizedBox(height: 24),
           const Text('商品網址', style: TextStyle(fontSize: 14, color: Colors.grey)),

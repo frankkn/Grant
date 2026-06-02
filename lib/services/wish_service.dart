@@ -20,6 +20,7 @@ class WishService {
     String? description,
     required String reason,
     required DateTime scheduledAt,
+    required String category,
   }) async {
     final now = DateTime.now();
     final ref = _db.collection('wishes').doc();
@@ -35,6 +36,7 @@ class WishService {
       reason: reason,
       scheduledAt: scheduledAt,
       status: WishStatus.pending,
+      category: category,
       createdAt: now,
       updatedAt: now,
     );
@@ -76,6 +78,7 @@ class WishService {
     String? description,
     required String reason,
     required DateTime scheduledAt,
+    required String category,
   }) async {
     await _db.collection('wishes').doc(wishId).update({
       'title': title,
@@ -85,6 +88,7 @@ class WishService {
       'description': description,
       'reason': reason,
       'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'category': category,
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
