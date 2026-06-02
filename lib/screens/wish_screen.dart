@@ -1100,24 +1100,27 @@ class WishTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: WishTypeCard(
-          icon: Icons.visibility_outlined,
-          title: '公開許願',
-          desc: '讓另一半馬上知道你想要什麼',
-          selected: !isSecret,
-          onTap: () => onChanged(false),
-        )),
-        const SizedBox(width: 10),
-        Expanded(child: WishTypeCard(
-          icon: Icons.lock_outline,
-          title: '秘密許願',
-          desc: '讓另一半帶著期待，到日期才知道驚喜是什麼',
-          selected: isSecret,
-          onTap: () => onChanged(true),
-        )),
-      ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: WishTypeCard(
+            icon: Icons.visibility_outlined,
+            title: '公開許願',
+            desc: '讓另一半馬上知道你想要什麼',
+            selected: !isSecret,
+            onTap: () => onChanged(false),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: WishTypeCard(
+            icon: Icons.lock_outline,
+            title: '秘密許願',
+            desc: '讓另一半帶著期待，到日期才知道驚喜是什麼',
+            selected: isSecret,
+            onTap: () => onChanged(true),
+          )),
+        ],
+      ),
     );
   }
 }
