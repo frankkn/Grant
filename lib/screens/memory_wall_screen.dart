@@ -36,10 +36,48 @@ class MemoryWallScreen extends StatelessWidget {
               ),
             );
           }
-          return ListView.builder(
+          final wishes = snap.data!;
+          // 統計各類別數量
+          final stats = <String, int>{};
+          for (final w in wishes) {
+            final cat = w.category ?? '其他';
+            stats[cat] = (stats[cat] ?? 0) + 1;
+          }
+          final sortedStats = stats.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+
+          return ListView(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            itemCount: snap.data!.length,
-            itemBuilder: (context, i) => _MemoryCard(wish: snap.data![i]),
+            children: [
+              // 統計區塊
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '已實現 ${wishes.length} 個願望',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: sortedStats.map((e) => Chip(
+                        label: Text('${e.key}  ${e.value}'),
+                        backgroundColor: Colors.pink.shade50,
+                        side: BorderSide(color: Colors.pink.shade100),
+                        labelStyle: const TextStyle(fontSize: 13),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      )).toList(),
+                    ),
+                    const Divider(height: 24),
+                  ],
+                ),
+              ),
+              // Timeline
+              ...List.generate(wishes.length, (i) => _MemoryCard(wish: wishes[i])),
+            ],
           );
         },
       ),
@@ -88,13 +126,25 @@ class _MemoryCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 日期
-                    Text(
-                      dateStr,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                    // 日期 + 類別
+                    Row(
+                      children: [
+                        Text(dateStr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Spacer(),
+                        if (wish.category != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.pink.shade50,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.pink.shade100),
+                            ),
+                            child: Text(
+                              wish.category!,
+                              style: const TextStyle(fontSize: 11, color: Colors.pink),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 6),
                     // 願望標題
