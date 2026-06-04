@@ -9,10 +9,12 @@ import 'screens/name_setup_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/music_service.dart';
+import 'services/theme_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try { await ThemeService().initialize(); } catch (_) {}
   try { await NotificationService().initialize(); } catch (_) {}
   try { await MusicService().initialize(); } catch (_) {}
   try { await AuthService().handleGoogleRedirectResult(); } catch (_) {}
@@ -22,31 +24,41 @@ void main() async {
 class GrantApp extends StatelessWidget {
   const GrantApp({super.key});
 
+  ThemeData _theme(Brightness brightness) => ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.pinkAccent,
+          brightness: brightness,
+        ),
+        useMaterial3: true,
+      );
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Grant',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.pinkAccent),
-        useMaterial3: true,
-      ),
-      // 寬螢幕（網頁／桌機）時，將內容限制在手機寬度的置中欄位，兩側留白；
-      // 手機螢幕比 480 窄，這層不會有作用。
-      builder: (context, child) {
-        return ColoredBox(
-          color: const Color(0xFFECECEC),
-          child: Center(
-            child: ClipRect(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: child ?? const SizedBox.shrink(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: ThemeService().mode,
+      builder: (context, themeMode, _) => MaterialApp(
+        title: 'Grant',
+        debugShowCheckedModeBanner: false,
+        theme: _theme(Brightness.light),
+        darkTheme: _theme(Brightness.dark),
+        themeMode: themeMode,
+        // 寬螢幕（網頁／桌機）時，將內容限制在手機寬度的置中欄位，兩側留白；
+        // 手機螢幕比 480 窄，這層不會有作用。
+        builder: (context, child) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return ColoredBox(
+            color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFECECEC),
+            child: Center(
+              child: ClipRect(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
-          ),
-        );
-      },
-      home: StreamBuilder<User?>(
+          );
+        },
+        home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
@@ -66,6 +78,7 @@ class GrantApp extends StatelessWidget {
             },
           );
         },
+        ),
       ),
     );
   }

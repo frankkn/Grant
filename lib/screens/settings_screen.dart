@@ -4,6 +4,7 @@ import '../models/user_model.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
+import '../services/theme_service.dart';
 import 'anniversary_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -86,6 +87,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(),
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeService().mode,
+            builder: (context, mode, _) => ListTile(
+              leading: const Icon(Icons.brightness_6_outlined),
+              title: const Text('外觀'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_themeLabel(mode), style: const TextStyle(fontSize: 16)),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+              onTap: () => _showThemePicker(context, mode),
+            ),
+          ),
+          const Divider(),
           if (widget.partnerId != null)
             ListTile(
               leading: const Icon(Icons.cake_outlined, color: Colors.pink),
@@ -113,6 +130,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
             trailing: Text(_version, style: const TextStyle(color: Colors.grey)),
           ),
         ],
+      ),
+    );
+  }
+
+  static String _themeLabel(ThemeMode mode) => switch (mode) {
+        ThemeMode.system => '跟隨系統',
+        ThemeMode.light => '淺色',
+        ThemeMode.dark => '深色',
+      };
+
+  void _showThemePicker(BuildContext context, ThemeMode current) {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ThemeMode.values.map((m) {
+            return RadioListTile<ThemeMode>(
+              value: m,
+              groupValue: current,
+              title: Text(_themeLabel(m)),
+              onChanged: (v) {
+                if (v != null) ThemeService().setMode(v);
+                Navigator.of(context).pop();
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }

@@ -183,6 +183,60 @@ class WishService {
     return controller.stream;
   }
 
+  /// 監聽和目前另一半之間「所有」願望（雙向，不分狀態）——供統計使用
+  Stream<List<WishModel>> watchAllWishes(String partnerId) {
+    List<WishModel> latestMine = [];
+    List<WishModel> latestTheirs = [];
+    StreamSubscription? sub1, sub2;
+
+    List<WishModel> merged() {
+      final seen = <String>{};
+      return [...latestMine, ...latestTheirs]
+          .where((w) => seen.add(w.id))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
+
+    late StreamController<List<WishModel>> controller;
+    controller = StreamController<List<WishModel>>(
+      onListen: () {
+        sub1 = _db
+            .collection('wishes')
+            .where('requesterId', isEqualTo: _myUid)
+            .snapshots()
+            .listen(
+              (snap) {
+                latestMine = snap.docs
+                    .map(WishModel.fromDoc)
+                    .where((w) => w.partnerId == partnerId)
+                    .toList();
+                if (!controller.isClosed) controller.add(merged());
+              },
+              onError: controller.addError,
+            );
+        sub2 = _db
+            .collection('wishes')
+            .where('partnerId', isEqualTo: _myUid)
+            .snapshots()
+            .listen(
+              (snap) {
+                latestTheirs = snap.docs
+                    .map(WishModel.fromDoc)
+                    .where((w) => w.requesterId == partnerId)
+                    .toList();
+                if (!controller.isClosed) controller.add(merged());
+              },
+              onError: controller.addError,
+            );
+      },
+      onCancel: () {
+        sub1?.cancel();
+        sub2?.cancel();
+      },
+    );
+    return controller.stream;
+  }
+
   /// 監聽我已審核的許願（通過、駁回、協商中，且來自目前另一半）
   Stream<List<WishModel>> watchReviewedWishes(String partnerId) {
     return _db

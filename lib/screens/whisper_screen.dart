@@ -3,6 +3,7 @@ import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/pair_service.dart';
+import '../utils/formatters.dart';
 
 const _moods = ['❤️', '😊', '🥰', '😢', '😡', '🤔', '😴', '🎉'];
 
@@ -202,8 +203,13 @@ class _PostBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final align = isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start;
-    final bubbleColor = isMine ? Colors.teal.shade100 : Colors.grey.shade200;
-    final time = _formatTime(post.createdAt);
+    final scheme = Theme.of(context).colorScheme;
+    final bubbleColor = isMine
+        ? (scheme.brightness == Brightness.dark
+            ? Colors.teal.shade700
+            : Colors.teal.shade100)
+        : scheme.surfaceContainerHighest;
+    final time = formatMdHm(post.createdAt);
     final body = post.mood.isEmpty
         ? post.text
         : (post.text.isEmpty ? post.mood : '${post.mood}  ${post.text}');
@@ -234,12 +240,6 @@ class _PostBubble extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  static String _formatTime(DateTime dt) {
-    final d = dt.toLocal();
-    String two(int n) => n.toString().padLeft(2, '0');
-    return '${d.month}/${d.day} ${two(d.hour)}:${two(d.minute)}';
   }
 }
 

@@ -64,6 +64,9 @@ class HomeScreen extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               Image.asset('assets/images/background.jpg', fit: BoxFit.cover),
+              // 深色模式：在背景圖上加暗色遮罩，整體更沉穩
+              if (Theme.of(context).brightness == Brightness.dark)
+                Container(color: Colors.black.withValues(alpha: 0.45)),
               Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -329,10 +332,14 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // 深色背景上提亮前景色以維持對比；底色也稍微加深
+    final fg = isDark ? Color.lerp(color, Colors.white, 0.45)! : color;
+    final bg = color.withValues(alpha: isDark ? 0.22 : 0.12);
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Material(
-        color: color.withValues(alpha: 0.12),
+        color: bg,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -341,7 +348,7 @@ class _InfoBanner extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
-                Icon(icon, color: color, size: 20),
+                Icon(icon, color: fg, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -349,11 +356,11 @@ class _InfoBanner extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        color: color, fontWeight: FontWeight.w600, fontSize: 14),
+                        color: fg, fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                 ),
                 if (onTap != null)
-                  Icon(Icons.chevron_right, color: color, size: 18),
+                  Icon(Icons.chevron_right, color: fg, size: 18),
               ],
             ),
           ),

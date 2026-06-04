@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/pair_model.dart';
 import '../services/pair_service.dart';
+import '../utils/formatters.dart';
 
 class AnniversaryScreen extends StatelessWidget {
   final String partnerId;
@@ -75,8 +76,7 @@ class _EventTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = event.daysUntilNext;
     final String countdown = days == 0 ? '就是今天 🎉' : '還有 $days 天';
-    final dateStr =
-        '${event.date.month} 月 ${event.date.day} 日';
+    final dateStr = formatMd(event.date);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -207,7 +207,7 @@ class _EventEditorState extends State<_EventEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = '${_date.year} 年 ${_date.month} 月 ${_date.day} 日';
+    final dateStr = formatYmd(_date);
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
