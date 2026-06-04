@@ -207,11 +207,20 @@ class WishService {
     if (decision == WishStatus.pending || decision == WishStatus.negotiating) {
       throw ArgumentError('請使用正確的審核方法');
     }
+    final wish = await _getWish(wishId);
     await _db.collection('wishes').doc(wishId).update({
       'status': decision.name,
       'reviewNote': reviewNote,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    if (wish != null) {
+      final approved = decision == WishStatus.approved;
+      await NotificationService().sendNotification(
+        toUid: wish.requesterId,
+        title: approved ? '✅ 願望通過了！' : '🥲 願望被婉拒了',
+        body: wish.title,
+      );
+    }
   }
 
   /// 提案修改（B 送出協商條件）
@@ -219,26 +228,56 @@ class WishService {
     required String wishId,
     required String negotiationNote,
   }) async {
+    final wish = await _getWish(wishId);
     await _db.collection('wishes').doc(wishId).update({
       'status': WishStatus.negotiating.name,
       'negotiationNote': negotiationNote,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    if (wish != null) {
+      await NotificationService().sendNotification(
+        toUid: wish.requesterId,
+        title: '💬 對方想和你商量一下',
+        body: wish.title,
+      );
+    }
   }
 
   /// A 接受協商提案 → 直接 approved
   Future<void> acceptNegotiation(String wishId) async {
+    final wish = await _getWish(wishId);
     await _db.collection('wishes').doc(wishId).update({
       'status': WishStatus.approved.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    if (wish != null) {
+      await NotificationService().sendNotification(
+        toUid: wish.partnerId,
+        title: '🤝 對方接受了你的提案',
+        body: wish.title,
+      );
+    }
   }
 
   /// A 放棄協商 → rejected
   Future<void> declineNegotiation(String wishId) async {
+    final wish = await _getWish(wishId);
     await _db.collection('wishes').doc(wishId).update({
       'status': WishStatus.rejected.name,
       'updatedAt': FieldValue.serverTimestamp(),
     });
+    if (wish != null) {
+      await NotificationService().sendNotification(
+        toUid: wish.partnerId,
+        title: '🥲 對方婉拒了這次的提案',
+        body: wish.title,
+      );
+    }
+  }
+
+  /// 讀取單一願望（推播需要 requesterId / partnerId / title）
+  Future<WishModel?> _getWish(String wishId) async {
+    final doc = await _db.collection('wishes').doc(wishId).get();
+    return doc.exists ? WishModel.fromDoc(doc) : null;
   }
 }

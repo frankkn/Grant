@@ -92,6 +92,20 @@ class NotificationService {
     required String toUid,
     required String wishTitle,
   }) async {
+    await sendNotification(
+      toUid: toUid,
+      title: '💝 新的許願！',
+      body: wishTitle,
+    );
+  }
+
+  /// 通用推播：在動作發生當下從 App 端送出（事件型推播）。
+  /// 失敗時靜默忽略，不影響主要操作流程。
+  Future<void> sendNotification({
+    required String toUid,
+    required String title,
+    String? body,
+  }) async {
     try {
       await http.post(
         Uri.parse('$_railwayUrl/notify'),
@@ -101,12 +115,12 @@ class NotificationService {
         },
         body: jsonEncode({
           'toUid': toUid,
-          'title': '💝 新的許願！',
-          'body': wishTitle,
+          'title': title,
+          if (body != null) 'body': body,
         }),
       );
     } catch (e) {
-      // 通知失敗不影響許願送出
+      // 通知失敗不影響主要操作
     }
   }
 }

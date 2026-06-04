@@ -4,6 +4,7 @@ import '../models/user_model.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
+import 'anniversary_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String? partnerId;
@@ -84,6 +85,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          const Divider(),
+          if (widget.partnerId != null)
+            ListTile(
+              leading: const Icon(Icons.cake_outlined, color: Colors.pink),
+              title: const Text('紀念日'),
+              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      AnniversaryScreen(partnerId: widget.partnerId!),
+                ),
+              ),
+            ),
           const Divider(),
           if (widget.partnerId != null)
             ListTile(

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import '../models/pair_model.dart';
+import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../models/wish_model.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
+import '../services/pair_service.dart';
 import '../services/wish_service.dart';
+import 'anniversary_screen.dart';
 import 'login_screen.dart';
 import 'memory_wall_screen.dart';
 import 'pair_screen.dart';
 import 'settings_screen.dart';
+import 'whisper_screen.dart';
 import 'wish_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -114,6 +119,11 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (user.partnerId != null) ...[
+                  _CountdownBanner(partnerId: user.partnerId!),
+                  _SecretUnlockBanner(partnerId: user.partnerId!),
+                  _LatestWhisperBanner(partnerId: user.partnerId!),
+                ],
                 Expanded(
                   child: Center(
                     child: user.partnerId == null
@@ -122,10 +132,13 @@ class HomeScreen extends StatelessWidget {
                             child: _NotebookButton(
                               icon: Icons.favorite_border,
                               label: '配對另一半',
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const PairScreen()),
-                              ),
+                              onPressed: () {
+                                MusicService().startOnWeb();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const PairScreen()),
+                                );
+                              },
                             ),
                           )
                         : Transform.translate(
@@ -133,7 +146,8 @@ class HomeScreen extends StatelessWidget {
                             offset: const Offset(-16, 0),
                             child: SizedBox(
                               width: 161,
-                              child: Column(
+                              child: SingleChildScrollView(
+                                child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _NotebookButton(
@@ -164,16 +178,36 @@ class HomeScreen extends StatelessWidget {
                                   _NotebookButton(
                                     icon: Icons.auto_stories,
                                     label: '回憶牆',
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => MemoryWallScreen(
-                                          partnerId: user.partnerId!,
+                                    onPressed: () {
+                                      MusicService().startOnWeb();
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => MemoryWallScreen(
+                                            partnerId: user.partnerId!,
+                                          ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 17),
+                                  _NotebookButton(
+                                    icon: Icons.chat_bubble_outline,
+                                    label: '悄悄話',
+                                    onPressed: () {
+                                      MusicService().startOnWeb();
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => WhisperScreen(
+                                            partnerId: user.partnerId!,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
+                              ),
                               ),
                             ),
                           ),
@@ -197,6 +231,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _openWish(BuildContext context, String partnerId, int index) {
+    MusicService().startOnWeb();
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -275,6 +310,179 @@ class _CountChip extends StatelessWidget {
         '$count',
         style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
       ),
+    );
+  }
+}
+
+/// 首頁資訊橫幅的共用外觀
+class _InfoBanner extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  final VoidCallback? onTap;
+  const _InfoBanner({
+    required this.icon,
+    required this.color,
+    required this.text,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Material(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: color, fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(Icons.chevron_right, color: color, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 最近的一個紀念日倒數
+class _CountdownBanner extends StatelessWidget {
+  final String partnerId;
+  const _CountdownBanner({required this.partnerId});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<PairModel?>(
+      stream: PairService().watchPair(partnerId),
+      builder: (context, snap) {
+        final events = snap.data?.events ?? [];
+        if (events.isEmpty) return const SizedBox.shrink();
+        final next = events.reduce(
+            (a, b) => a.daysUntilNext <= b.daysUntilNext ? a : b);
+        final days = next.daysUntilNext;
+        final String text;
+        if (next.type == AnniversaryType.together && days != 0) {
+          text = '在一起 ${next.daysTogether} 天　・　${next.title} 還有 $days 天';
+        } else if (days == 0) {
+          text = '今天是「${next.title}」🎉';
+        } else {
+          text = '距離「${next.title}」還有 $days 天';
+        }
+        return _InfoBanner(
+          icon: Icons.favorite,
+          color: Colors.pink,
+          text: text,
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AnniversaryScreen(partnerId: partnerId),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 即將／剛解鎖的神秘心願（不洩漏內容）
+class _SecretUnlockBanner extends StatelessWidget {
+  final String partnerId;
+  const _SecretUnlockBanner({required this.partnerId});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<WishModel>>(
+      stream: WishService().watchIncomingWishes(partnerId),
+      builder: (context, snap) {
+        final secrets = (snap.data ?? []).where((w) => w.isSecret).toList();
+        if (secrets.isEmpty) return const SizedBox.shrink();
+        // 已解鎖的優先提示，否則顯示最接近解鎖的那一個
+        final unlocked = secrets.where((w) => !w.isLockedSecret).toList();
+        if (unlocked.isNotEmpty) {
+          return _InfoBanner(
+            icon: Icons.lock_open,
+            color: Colors.deepPurple,
+            text: '有 ${unlocked.length} 個神秘心願已解鎖，快去看看 🎁',
+            onTap: () => _openReview(context),
+          );
+        }
+        final soonest = secrets.reduce(
+            (a, b) => a.scheduledAt.isBefore(b.scheduledAt) ? a : b);
+        final days = soonest.scheduledAt
+            .difference(DateTime.now())
+            .inDays;
+        return _InfoBanner(
+          icon: Icons.lock_clock,
+          color: Colors.deepPurple,
+          text: '神秘心願將在 ${days <= 0 ? 1 : days} 天後解鎖 🎁',
+        );
+      },
+    );
+  }
+
+  void _openReview(BuildContext context) {
+    MusicService().startOnWeb();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WishScreen(partnerId: partnerId, initialIndex: 2),
+      ),
+    );
+  }
+}
+
+/// 對方最新一則悄悄話
+class _LatestWhisperBanner extends StatelessWidget {
+  final String partnerId;
+  const _LatestWhisperBanner({required this.partnerId});
+
+  @override
+  Widget build(BuildContext context) {
+    final myUid = AuthService().currentUser?.uid;
+    return StreamBuilder<List<PostModel>>(
+      stream: PairService().watchPosts(partnerId),
+      builder: (context, snap) {
+        final posts = snap.data ?? [];
+        // 只在對方有發文時提示
+        final fromPartner =
+            posts.where((p) => p.authorId != myUid).toList();
+        if (fromPartner.isEmpty) return const SizedBox.shrink();
+        final latest = fromPartner.first;
+        final preview =
+            latest.mood.isEmpty ? latest.text : '${latest.mood} ${latest.text}';
+        return _InfoBanner(
+          icon: Icons.chat_bubble,
+          color: Colors.teal,
+          text: preview,
+          onTap: () {
+            MusicService().startOnWeb();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => WhisperScreen(partnerId: partnerId),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
