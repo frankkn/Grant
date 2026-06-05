@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:grant/models/user_model.dart';
 import 'package:grant/models/wish_model.dart';
 import 'package:grant/services/pair_service.dart';
 import 'package:grant/services/wish_service.dart';
@@ -206,6 +207,37 @@ void main() {
     test('公開願望 → 永不鎖定', () {
       final w = make(isSecret: false, scheduledAt: DateTime.now().add(const Duration(days: 3)));
       expect(w.isLockedSecret, isFalse);
+    });
+  });
+
+  // ─── Bug 7：UserModel 容錯解析 ─────────────────────────────────────
+  group('Bug 7 — UserModel.fromDoc 容錯解析', () {
+    late FakeFirebaseFirestore db;
+
+    setUp(() => db = FakeFirebaseFirestore());
+
+    test('createdAt 為 null（serverTimestamp 尚未解析）→ 不丟錯，退回現在', () async {
+      await db.collection('users').doc('U').set({
+        'uid': 'U',
+        'email': 'u@x.com',
+        'displayName': 'U',
+        'createdAt': null,
+      });
+      final doc = await db.collection('users').doc('U').get();
+      final user = UserModel.fromDoc(doc);
+      expect(user.uid, 'U');
+      expect(user.createdAt, isNotNull);
+    });
+
+    test('缺少 uid/email/displayName/createdAt 欄位 → 退回預設值，不丟錯', () async {
+      await db.collection('users').doc('U2').set({'partnerId': 'P'});
+      final doc = await db.collection('users').doc('U2').get();
+      final user = UserModel.fromDoc(doc);
+      expect(user.uid, 'U2', reason: '缺 uid 時退回 doc.id');
+      expect(user.email, '');
+      expect(user.displayName, '');
+      expect(user.partnerId, 'P');
+      expect(user.createdAt, isNotNull);
     });
   });
 }
