@@ -21,7 +21,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class NotificationService {
   static const _railwayUrl = 'https://grant-backend-production.up.railway.app';
-  static const _apiKey = 'REDACTED-ROTATED-KEY';
 
   final _messaging = FirebaseMessaging.instance;
   final _db = FirebaseFirestore.instance;
@@ -107,11 +106,13 @@ class NotificationService {
     String? body,
   }) async {
     try {
+      final idToken = await _auth.currentUser?.getIdToken();
+      if (idToken == null) return;
       await http.post(
         Uri.parse('$_railwayUrl/notify'),
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': _apiKey,
+          'Authorization': 'Bearer $idToken',
         },
         body: jsonEncode({
           'toUid': toUid,

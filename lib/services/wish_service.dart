@@ -81,7 +81,7 @@ class WishService {
             .toList());
   }
 
-  /// 編輯許願（只允許 pending 狀態）
+  /// 編輯許願（只允許 pending 狀態，且只有許願者本人）
   Future<void> updateWish({
     required String wishId,
     required String title,
@@ -94,23 +94,39 @@ class WishService {
     required String category,
     bool isSecret = false,
   }) async {
-    await _db.collection('wishes').doc(wishId).update({
-      'title': title,
-      'price': price,
-      'heartRating': heartRating,
-      'productUrl': productUrl,
-      'description': description,
-      'reason': reason,
-      'scheduledAt': Timestamp.fromDate(scheduledAt),
-      'category': category,
-      'isSecret': isSecret,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      final wish = WishModel.fromDoc(snap);
+      if (wish.requesterId != _myUid) throw Exception('無權修改此願望');
+      if (wish.status != WishStatus.pending) throw Exception('只能修改待審核的願望');
+      tx.update(ref, {
+        'title': title,
+        'price': price,
+        'heartRating': heartRating,
+        'productUrl': productUrl,
+        'description': description,
+        'reason': reason,
+        'scheduledAt': Timestamp.fromDate(scheduledAt),
+        'category': category,
+        'isSecret': isSecret,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
-  /// 刪除許願（只允許 pending 狀態）
+  /// 刪除許願（只允許 pending 狀態，且只有許願者本人）
   Future<void> deleteWish(String wishId) async {
-    await _db.collection('wishes').doc(wishId).delete();
+    final ref = _db.collection('wishes').doc(wishId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      final wish = WishModel.fromDoc(snap);
+      if (wish.requesterId != _myUid) throw Exception('無權刪除此願望');
+      if (wish.status != WishStatus.pending) throw Exception('只能刪除待審核的願望');
+      tx.delete(ref);
+    });
   }
 
   /// 切換願望是否已實現，可附上感謝話
@@ -261,18 +277,26 @@ class WishService {
     if (decision == WishStatus.pending || decision == WishStatus.negotiating) {
       throw ArgumentError('請使用正確的審核方法');
     }
-    final wish = await _getWish(wishId);
-    await _db.collection('wishes').doc(wishId).update({
-      'status': decision.name,
-      'reviewNote': reviewNote,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    WishModel? wish;
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      wish = WishModel.fromDoc(snap);
+      if (wish!.partnerId != _myUid) throw Exception('無權審核此願望');
+      if (wish!.status != WishStatus.pending) throw Exception('只能審核待審核的願望');
+      tx.update(ref, {
+        'status': decision.name,
+        'reviewNote': reviewNote,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
     if (wish != null) {
       final approved = decision == WishStatus.approved;
       await NotificationService().sendNotification(
-        toUid: wish.requesterId,
+        toUid: wish!.requesterId,
         title: approved ? '✅ 願望通過了！' : '🥲 願望被婉拒了',
-        body: wish.title,
+        body: wish!.title,
       );
     }
   }
@@ -282,56 +306,74 @@ class WishService {
     required String wishId,
     required String negotiationNote,
   }) async {
-    final wish = await _getWish(wishId);
-    await _db.collection('wishes').doc(wishId).update({
-      'status': WishStatus.negotiating.name,
-      'negotiationNote': negotiationNote,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    WishModel? wish;
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      wish = WishModel.fromDoc(snap);
+      if (wish!.partnerId != _myUid) throw Exception('無權提案此願望');
+      if (wish!.status != WishStatus.pending) throw Exception('只能對待審核的願望提案');
+      tx.update(ref, {
+        'status': WishStatus.negotiating.name,
+        'negotiationNote': negotiationNote,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
     if (wish != null) {
       await NotificationService().sendNotification(
-        toUid: wish.requesterId,
+        toUid: wish!.requesterId,
         title: '💬 對方想和你商量一下',
-        body: wish.title,
+        body: wish!.title,
       );
     }
   }
 
   /// A 接受協商提案 → 直接 approved
   Future<void> acceptNegotiation(String wishId) async {
-    final wish = await _getWish(wishId);
-    await _db.collection('wishes').doc(wishId).update({
-      'status': WishStatus.approved.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    WishModel? wish;
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      wish = WishModel.fromDoc(snap);
+      if (wish!.requesterId != _myUid) throw Exception('無權接受此協商');
+      if (wish!.status != WishStatus.negotiating) throw Exception('此願望不在協商狀態');
+      tx.update(ref, {
+        'status': WishStatus.approved.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
     if (wish != null) {
       await NotificationService().sendNotification(
-        toUid: wish.partnerId,
+        toUid: wish!.partnerId,
         title: '🤝 對方接受了你的提案',
-        body: wish.title,
+        body: wish!.title,
       );
     }
   }
 
   /// A 放棄協商 → rejected
   Future<void> declineNegotiation(String wishId) async {
-    final wish = await _getWish(wishId);
-    await _db.collection('wishes').doc(wishId).update({
-      'status': WishStatus.rejected.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    WishModel? wish;
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      wish = WishModel.fromDoc(snap);
+      if (wish!.requesterId != _myUid) throw Exception('無權拒絕此協商');
+      if (wish!.status != WishStatus.negotiating) throw Exception('此願望不在協商狀態');
+      tx.update(ref, {
+        'status': WishStatus.rejected.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
     if (wish != null) {
       await NotificationService().sendNotification(
-        toUid: wish.partnerId,
+        toUid: wish!.partnerId,
         title: '🥲 對方婉拒了這次的提案',
-        body: wish.title,
+        body: wish!.title,
       );
     }
-  }
-
-  /// 讀取單一願望（推播需要 requesterId / partnerId / title）
-  Future<WishModel?> _getWish(String wishId) async {
-    final doc = await _db.collection('wishes').doc(wishId).get();
-    return doc.exists ? WishModel.fromDoc(doc) : null;
   }
 }
