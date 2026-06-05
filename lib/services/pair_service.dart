@@ -1,17 +1,21 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import '../models/pair_model.dart';
 import '../models/post_model.dart';
+import 'backend.dart';
 import 'notification_service.dart';
 
 class PairService {
-  PairService({FirebaseFirestore? db, FirebaseAuth? auth})
+  PairService({FirebaseFirestore? db, FirebaseAuth? auth, http.Client? httpClient})
       : _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+        _auth = auth ?? FirebaseAuth.instance,
+        _http = httpClient ?? http.Client();
 
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
+  final http.Client _http;
 
   String get _myUid => _auth.currentUser!.uid;
 
@@ -106,85 +110,19 @@ class PairService {
     );
   }
 
-  String _generateCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rand = Random.secure();
-    return List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
-  }
-
-  /// 生成配對碼，存入 pairCodes collection 並更新自己的 user 文件。
-  /// 用 transaction 確保：(1) 不覆蓋既有的 code（碰撞時換碼重試）、
-  /// (2) 同時刪除自己上一個尚未使用的舊 code，避免多個有效碼並存。
+  /// 生成配對碼。實際的唯一碼產生 / 舊碼清除由後端以 Admin SDK 在
+  /// transaction 內完成，client 僅帶 ID token 呼叫，避免越權寫入 pairCodes。
   Future<String> generatePairCode() async {
-    final uid = _auth.currentUser!.uid;
-    final userRef = _db.collection('users').doc(uid);
-    final expiresAt = DateTime.now().add(const Duration(minutes: 10));
-
-    for (var attempt = 0; attempt < 5; attempt++) {
-      final code = _generateCode();
-      final codeRef = _db.collection('pairCodes').doc(code);
-      try {
-        await _db.runTransaction((tx) async {
-          // 讀取必須在寫入之前
-          final codeSnap = await tx.get(codeRef);
-          if (codeSnap.exists) throw const _CodeCollision();
-          final userSnap = await tx.get(userRef);
-          final oldCode = userSnap.data()?['pairCode'] as String?;
-
-          tx.set(codeRef, {
-            'code': code,
-            'ownerId': uid,
-            'createdAt': FieldValue.serverTimestamp(),
-            'expiresAt': Timestamp.fromDate(expiresAt),
-          });
-          tx.update(userRef, {'pairCode': code});
-          // 刪除上一個尚未使用的舊配對碼
-          if (oldCode != null && oldCode != code) {
-            tx.delete(_db.collection('pairCodes').doc(oldCode));
-          }
-        });
-        return code;
-      } on _CodeCollision {
-        // 碰撞（極罕見）：換一組碼重試
-        continue;
-      }
-    }
-    throw Exception('產生配對碼失敗，請稍後再試');
+    final data = await _postAuthed('/pair/generate-code', const {});
+    final code = data['code'] as String?;
+    if (code == null) throw Exception('產生配對碼失敗，請稍後再試');
+    return code;
   }
 
-  /// 輸入配對碼，將雙方綁定為 partner
+  /// 輸入配對碼，將雙方綁定為 partner。雙向綁定與配對碼刪除由後端
+  /// 以 Admin SDK 在 transaction 內原子完成，杜絕競態與越權配對。
   Future<void> joinWithCode(String code) async {
-    final myUid = _auth.currentUser!.uid;
-    final codeRef = _db.collection('pairCodes').doc(code.toUpperCase());
-    final myRef = _db.collection('users').doc(myUid);
-
-    await _db.runTransaction((tx) async {
-      final codeSnap = await tx.get(codeRef);
-      if (!codeSnap.exists) throw Exception('找不到此配對碼');
-
-      final data = codeSnap.data()!;
-      final expiresAt = (data['expiresAt'] as Timestamp).toDate();
-      if (DateTime.now().isAfter(expiresAt)) throw Exception('配對碼已過期');
-
-      final partnerUid = data['ownerId'] as String;
-      if (partnerUid == myUid) throw Exception('不能和自己配對');
-
-      // 在 transaction 內讀取雙方 user，確保檢查與寫入是原子的
-      final mySnap = await tx.get(myRef);
-      if ((mySnap.data()?['partnerId'] as String?) != null) {
-        throw Exception('你已經配對了，請先解除配對再重新配對');
-      }
-      final partnerRef = _db.collection('users').doc(partnerUid);
-      final partnerSnap = await tx.get(partnerRef);
-      if ((partnerSnap.data()?['partnerId'] as String?) != null) {
-        throw Exception('對方已經和別人配對了');
-      }
-
-      // 互相設定 partnerId，並刪除配對碼（原子完成）
-      tx.update(myRef, {'partnerId': partnerUid});
-      tx.update(partnerRef, {'partnerId': myUid, 'pairCode': null});
-      tx.delete(codeRef);
-    });
+    await _postAuthed('/pair/join', {'code': code.trim().toUpperCase()});
   }
 
   /// 解除配對
@@ -195,9 +133,26 @@ class PairService {
     batch.update(_db.collection('users').doc(partnerId), {'partnerId': null});
     await batch.commit();
   }
-}
 
-/// 配對碼碰撞時的內部訊號，用於觸發換碼重試（不外洩給呼叫端）
-class _CodeCollision implements Exception {
-  const _CodeCollision();
+  /// 帶 Firebase ID token 呼叫後端；非 2xx 時以後端回傳的 error 訊息丟出例外。
+  Future<Map<String, dynamic>> _postAuthed(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final token = await _auth.currentUser?.getIdToken();
+    if (token == null) throw Exception('尚未登入');
+    final resp = await _http.post(
+      Uri.parse('$backendBaseUrl$path'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    final data = resp.body.isNotEmpty
+        ? jsonDecode(resp.body) as Map<String, dynamic>
+        : <String, dynamic>{};
+    if (resp.statusCode >= 200 && resp.statusCode < 300) return data;
+    throw Exception((data['error'] as String?) ?? '操作失敗（${resp.statusCode}）');
+  }
 }

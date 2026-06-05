@@ -30,16 +30,13 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && userId == uid();
 
+      // 自己的文件：完全控制（fcmToken / pairCode / displayName 等）。
+      // 跨使用者僅允許「解除配對時清空對方的 partnerId」這一種安全寫入。
+      // 配對「綁定」（寫入對方的 partnerId）已改由後端 Admin SDK 執行，
+      // 故不在 rules 開放任何人把未配對者強綁為自己的伴侶。
       allow update: if isSignedIn() && (
-        // 自己的文件：完全控制（fcmToken / pairCode / displayName 等）
         userId == uid()
         ||
-        // 配對：把一個「尚未配對」的使用者綁定為我的伴侶（joinWithCode 寫入擁有者文件）
-        ( resource.data.partnerId == null
-          && request.resource.data.partnerId == uid()
-          && onlyChanges(['partnerId', 'pairCode']) )
-        ||
-        // 解除配對：當我是對方的伴侶時，清空對方的 partnerId
         ( resource.data.partnerId == uid()
           && request.resource.data.partnerId == null
           && onlyChanges(['partnerId']) )
@@ -123,15 +120,10 @@ service cloud.firestore {
     }
 
     // ── pairCodes ────────────────────────────────────────
+    // 配對碼完全由後端（Admin SDK，繞過本規則）建立、查詢與刪除，
+    // client 不再直接存取，故一律拒絕，杜絕枚舉與越權寫入。
     match /pairCodes/{code} {
-      // 加入者需讀取配對碼以取得擁有者，故登入者皆可讀
-      allow read: if isSignedIn();
-      // 建立：擁有者必為自己
-      allow create: if isSignedIn() && request.resource.data.ownerId == uid();
-      // 刪除：配對完成（加入者刪除）或重新產生（擁有者刪除）皆需要
-      allow delete: if isSignedIn();
-      // 配對碼產生即固定，不允許更新
-      allow update: if false;
+      allow read, write: if false;
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'backend.dart';
 
 const _channel = AndroidNotificationChannel(
   'grant_wishes',
@@ -20,8 +21,6 @@ final _localNotifications = FlutterLocalNotificationsPlugin();
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class NotificationService {
-  static const _railwayUrl = 'https://grant-backend-production.up.railway.app';
-
   final _messaging = FirebaseMessaging.instance;
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
@@ -109,7 +108,7 @@ class NotificationService {
       final idToken = await _auth.currentUser?.getIdToken();
       if (idToken == null) return;
       await http.post(
-        Uri.parse('$_railwayUrl/notify'),
+        Uri.parse('$backendBaseUrl/notify'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $idToken',

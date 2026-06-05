@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:grant/models/user_model.dart';
 import 'package:grant/models/wish_model.dart';
 import 'package:grant/services/pair_service.dart';
@@ -35,83 +38,52 @@ Map<String, dynamic> wishMap({
 };
 
 void main() {
-  // ─── Bug 1：配對防護 ──────────────────────────────────────────────
-  group('Bug 1 — PairService.joinWithCode 配對防護', () {
-    late FakeFirebaseFirestore db;
-
-    setUp(() => db = FakeFirebaseFirestore());
-
-    Future<void> seedCode(String code, String ownerId, {Duration ttl = const Duration(minutes: 10)}) {
-      return db.collection('pairCodes').doc(code).set({
-        'code': code,
-        'ownerId': ownerId,
-        'createdAt': Timestamp.now(),
-        'expiresAt': Timestamp.fromDate(DateTime.now().add(ttl)),
-      });
-    }
-
-    PairService serviceAs(String uid) => PairService(
-      db: db,
+  // ─── Bug 1：配對改由後端執行，client 僅負責帶 token 呼叫與錯誤對接 ──────
+  // （配對的競態防護與授權邏輯已移至後端 Admin SDK transaction，於後端測試覆蓋）
+  group('Bug 1 — PairService 配對改打後端 API', () {
+    PairService serviceWith(MockClient client, {String uid = 'B'}) => PairService(
+      db: FakeFirebaseFirestore(),
       auth: MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: uid)),
+      httpClient: client,
     );
 
-    test('正常情況：雙方都未配對 → 互相綁定、配對碼被刪除', () async {
-      await db.collection('users').doc('A').set({'displayName': 'A'});
-      await db.collection('users').doc('B').set({'displayName': 'B'});
-      await seedCode('ABC123', 'A');
+    test('generatePairCode 帶 Bearer token 呼叫 /pair/generate-code 並回傳 code', () async {
+      late http.Request captured;
+      final client = MockClient((req) async {
+        captured = req;
+        return http.Response(jsonEncode({'code': 'ABC123'}), 200);
+      });
 
-      await serviceAs('B').joinWithCode('ABC123');
+      final code = await serviceWith(client).generatePairCode();
 
-      final a = await db.collection('users').doc('A').get();
-      final b = await db.collection('users').doc('B').get();
-      expect(b.data()!['partnerId'], 'A');
-      expect(a.data()!['partnerId'], 'B');
-      final code = await db.collection('pairCodes').doc('ABC123').get();
-      expect(code.exists, isFalse);
+      expect(code, 'ABC123');
+      expect(captured.url.path, '/pair/generate-code');
+      expect(captured.headers['Authorization'], startsWith('Bearer '));
     });
 
-    test('加入者已配對 → 丟錯，且不污染對方資料', () async {
-      await db.collection('users').doc('A').set({'displayName': 'A'});
-      await db.collection('users').doc('B').set({'displayName': 'B', 'partnerId': 'C'});
-      await seedCode('ABC123', 'A');
+    test('joinWithCode 送出大寫、去空白的 code 至 /pair/join', () async {
+      late Map<String, dynamic> sentBody;
+      late http.Request captured;
+      final client = MockClient((req) async {
+        captured = req;
+        sentBody = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(jsonEncode({'success': true}), 200);
+      });
 
-      await expectLater(
-        serviceAs('B').joinWithCode('ABC123'),
-        throwsA(isA<Exception>()),
-      );
-      final a = await db.collection('users').doc('A').get();
-      expect(a.data()!['partnerId'], isNull, reason: 'A 不該被綁定');
+      await serviceWith(client).joinWithCode('  abc123 ');
+
+      expect(captured.url.path, '/pair/join');
+      expect(sentBody['code'], 'ABC123');
+      expect(captured.headers['Authorization'], startsWith('Bearer '));
     });
 
-    test('配對碼擁有者已配對 → 丟錯', () async {
-      await db.collection('users').doc('A').set({'displayName': 'A', 'partnerId': 'X'});
-      await db.collection('users').doc('B').set({'displayName': 'B'});
-      await seedCode('ABC123', 'A');
+    test('後端回非 2xx → 以後端 error 訊息丟出例外', () async {
+      final client = MockClient((req) async =>
+          http.Response(jsonEncode({'error': '配對碼已過期'}), 400));
 
       await expectLater(
-        serviceAs('B').joinWithCode('ABC123'),
-        throwsA(isA<Exception>()),
-      );
-    });
-
-    test('配對碼過期 → 丟錯', () async {
-      await db.collection('users').doc('A').set({'displayName': 'A'});
-      await db.collection('users').doc('B').set({'displayName': 'B'});
-      await seedCode('ABC123', 'A', ttl: const Duration(minutes: -1));
-
-      await expectLater(
-        serviceAs('B').joinWithCode('ABC123'),
-        throwsA(isA<Exception>()),
-      );
-    });
-
-    test('和自己配對 → 丟錯', () async {
-      await db.collection('users').doc('A').set({'displayName': 'A'});
-      await seedCode('ABC123', 'A');
-
-      await expectLater(
-        serviceAs('A').joinWithCode('ABC123'),
-        throwsA(isA<Exception>()),
+        serviceWith(client).joinWithCode('ABC123'),
+        throwsA(predicate((e) => e.toString().contains('配對碼已過期'))),
       );
     });
   });
