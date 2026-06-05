@@ -136,42 +136,36 @@ class PairService {
   /// 輸入配對碼，將雙方綁定為 partner
   Future<void> joinWithCode(String code) async {
     final myUid = _auth.currentUser!.uid;
+    final codeRef = _db.collection('pairCodes').doc(code.toUpperCase());
+    final myRef = _db.collection('users').doc(myUid);
 
-    final codeDoc = await _db.collection('pairCodes').doc(code.toUpperCase()).get();
-    if (!codeDoc.exists) throw Exception('找不到此配對碼');
+    await _db.runTransaction((tx) async {
+      final codeSnap = await tx.get(codeRef);
+      if (!codeSnap.exists) throw Exception('找不到此配對碼');
 
-    final data = codeDoc.data()!;
-    final expiresAt = (data['expiresAt'] as Timestamp).toDate();
-    if (DateTime.now().isAfter(expiresAt)) throw Exception('配對碼已過期');
+      final data = codeSnap.data()!;
+      final expiresAt = (data['expiresAt'] as Timestamp).toDate();
+      if (DateTime.now().isAfter(expiresAt)) throw Exception('配對碼已過期');
 
-    final partnerUid = data['ownerId'] as String;
-    if (partnerUid == myUid) throw Exception('不能和自己配對');
+      final partnerUid = data['ownerId'] as String;
+      if (partnerUid == myUid) throw Exception('不能和自己配對');
 
-    // 確認雙方都尚未配對，避免覆蓋掉既有配對造成「單向配對」孤兒
-    final myDoc = await _db.collection('users').doc(myUid).get();
-    if ((myDoc.data()?['partnerId'] as String?) != null) {
-      throw Exception('你已經配對了，請先解除配對再重新配對');
-    }
-    final partnerDoc = await _db.collection('users').doc(partnerUid).get();
-    if ((partnerDoc.data()?['partnerId'] as String?) != null) {
-      throw Exception('對方已經和別人配對了');
-    }
+      // 在 transaction 內讀取雙方 user，確保檢查與寫入是原子的
+      final mySnap = await tx.get(myRef);
+      if ((mySnap.data()?['partnerId'] as String?) != null) {
+        throw Exception('你已經配對了，請先解除配對再重新配對');
+      }
+      final partnerRef = _db.collection('users').doc(partnerUid);
+      final partnerSnap = await tx.get(partnerRef);
+      if ((partnerSnap.data()?['partnerId'] as String?) != null) {
+        throw Exception('對方已經和別人配對了');
+      }
 
-    final batch = _db.batch();
-
-    // 互相設定 partnerId
-    batch.update(_db.collection('users').doc(myUid), {
-      'partnerId': partnerUid,
+      // 互相設定 partnerId，並刪除配對碼（原子完成）
+      tx.update(myRef, {'partnerId': partnerUid});
+      tx.update(partnerRef, {'partnerId': myUid, 'pairCode': null});
+      tx.delete(codeRef);
     });
-    batch.update(_db.collection('users').doc(partnerUid), {
-      'partnerId': myUid,
-      'pairCode': null,
-    });
-
-    // 刪除已使用的配對碼
-    batch.delete(_db.collection('pairCodes').doc(code.toUpperCase()));
-
-    await batch.commit();
   }
 
   /// 解除配對
