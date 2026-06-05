@@ -86,6 +86,16 @@ void main() {
         throwsA(predicate((e) => e.toString().contains('配對碼已過期'))),
       );
     });
+
+    test('後端回非 JSON（如 gateway 502 HTML）→ 丟出含狀態碼的訊息，而非 FormatException', () async {
+      final client = MockClient((req) async =>
+          http.Response('<html>502 Bad Gateway</html>', 502));
+
+      await expectLater(
+        serviceWith(client).generatePairCode(),
+        throwsA(predicate((e) => e is Exception && e.toString().contains('502'))),
+      );
+    });
   });
 
   // ─── Bug 2：願望查詢限定在目前的 partner ────────────────────────────

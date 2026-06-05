@@ -149,9 +149,16 @@ class PairService {
       },
       body: jsonEncode(body),
     );
-    final data = resp.body.isNotEmpty
-        ? jsonDecode(resp.body) as Map<String, dynamic>
-        : <String, dynamic>{};
+    // 後端理應回 JSON；但遇到 gateway 502/504 之類的非 JSON 回應時，
+    // 不讓 jsonDecode 的 FormatException 外漏，退回空 map 交由下方狀態碼處理。
+    Map<String, dynamic> data;
+    try {
+      data = resp.body.isNotEmpty
+          ? jsonDecode(resp.body) as Map<String, dynamic>
+          : <String, dynamic>{};
+    } catch (_) {
+      data = <String, dynamic>{};
+    }
     if (resp.statusCode >= 200 && resp.statusCode < 300) return data;
     throw Exception((data['error'] as String?) ?? '操作失敗（${resp.statusCode}）');
   }
