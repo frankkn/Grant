@@ -1,6 +1,6 @@
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.8.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.8.0)
+[![Version](https://img.shields.io/badge/version-v1.9.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.9.0)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
@@ -122,6 +122,7 @@ flutter build apk --debug
 
 | 版本 | 日期 | 更新內容 |
 |------|------|---------|
+| v1.9.0 | 2026-06-06 | 安全性與穩定性強化：推播改為僅能發送給「目前的伴侶」（後端授權，防止濫發通知）；配對流程更健壯——配對成功後自動清除殘留配對碼、後端每日清理過期配對碼、錯誤回應更一致；修正網路／閘道異常時顯示技術性錯誤訊息的問題，改為友善提示 |
 | v1.8.0 | 2026-06-06 | 安全性強化：推播與配對改由後端驗證身分（Firebase ID Token），新增 Firestore 安全規則限制越權讀寫；配對流程改由後端原子處理，更穩定可靠；修正多處頁面資源未釋放與非同步狀態的潛在 crash、強化使用者資料解析容錯 |
 | v1.7.0 | 2026-06-05 | 回憶牆新增「統計」分頁（實現率、你 vs 對方、類別排行、平均心動指數、狀態分佈）；新增深色模式（設定頁外觀切換、記住偏好）；日期格式本地化為「2026年6月5日」 |
 | v1.6.0 | 2026-06-05 | 新增紀念日倒數（在一起／生日／自訂，首頁倒數橫幅）、悄悄話動態牆（聊天式留言＋心情）、神秘心願解鎖卡；推播補齊審核結果／協商提案／新悄悄話，後端新增每日排程推播（紀念日當天、秘密願望解鎖日） |
