@@ -1,0 +1,137 @@
+rules_version = '2';
+
+// Grant — Firestore security rules
+// 對應 lib/services 內的實際存取模式。後端（Railway, Admin SDK）會完全略過這些規則。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── 共用輔助函式 ──────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    // 只變動 allowed 內列出的欄位（用於限制跨使用者寫入的範圍）
+    function onlyChanges(allowed) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+    // 我目前的配對對象（未配對則為 null）
+    function myPartner() {
+      return get(/databases/$(database)/documents/users/$(uid())).data.partnerId;
+    }
+
+    // ── users ────────────────────────────────────────────
+    // 讀取：登入者皆可讀。配對流程中加入者需先讀取配對碼擁有者的文件，
+    // 因此無法限制為「僅自己/伴侶」。文件含 email / fcmToken / pairCode，
+    // 屬於同 app 已登入使用者之間的低風險暴露（fcmToken 無伺服器金鑰無法發送）。
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() && userId == uid();
+
+      allow update: if isSignedIn() && (
+        // 自己的文件：完全控制（fcmToken / pairCode / displayName 等）
+        userId == uid()
+        ||
+        // 配對：把一個「尚未配對」的使用者綁定為我的伴侶（joinWithCode 寫入擁有者文件）
+        ( resource.data.partnerId == null
+          && request.resource.data.partnerId == uid()
+          && onlyChanges(['partnerId', 'pairCode']) )
+        ||
+        // 解除配對：當我是對方的伴侶時，清空對方的 partnerId
+        ( resource.data.partnerId == uid()
+          && request.resource.data.partnerId == null
+          && onlyChanges(['partnerId']) )
+      );
+
+      allow delete: if false;
+    }
+
+    // ── wishes ───────────────────────────────────────────
+    match /wishes/{wishId} {
+      // 只有許願者與被許願的伴侶能讀（秘密願望的內容隱藏仍由 client 處理）
+      allow read: if isSignedIn() && (
+        resource.data.requesterId == uid() ||
+        resource.data.partnerId == uid()
+      );
+
+      // 建立：建立者必為許願者本人，且狀態從 pending 起算
+      allow create: if isSignedIn()
+        && request.resource.data.requesterId == uid()
+        && request.resource.data.partnerId != uid()
+        && request.resource.data.status == 'pending';
+
+      // 更新：owner 欄位永遠不可變，狀態轉換依角色限定
+      allow update: if isSignedIn()
+        && request.resource.data.requesterId == resource.data.requesterId
+        && request.resource.data.partnerId == resource.data.partnerId
+        && (
+          // 1) 許願者編輯（維持 pending）
+          ( resource.data.requesterId == uid()
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'pending' )
+          ||
+          // 2) 伴侶審核 / 提案（pending → approved | rejected | negotiating）
+          ( resource.data.partnerId == uid()
+            && resource.data.status == 'pending'
+            && request.resource.data.status in ['approved', 'rejected', 'negotiating'] )
+          ||
+          // 3) 許願者回應協商（negotiating → approved | rejected）
+          ( resource.data.requesterId == uid()
+            && resource.data.status == 'negotiating'
+            && request.resource.data.status in ['approved', 'rejected'] )
+          ||
+          // 4) 任一方切換「已實現」狀態（不改變 status，只動 fulfillment 欄位）
+          ( (resource.data.requesterId == uid() || resource.data.partnerId == uid())
+            && request.resource.data.status == resource.data.status
+            && onlyChanges(['isFulfilled', 'fulfillmentNote', 'updatedAt']) )
+        );
+
+      // 刪除：只有許願者本人，且仍在 pending
+      allow delete: if isSignedIn()
+        && resource.data.requesterId == uid()
+        && resource.data.status == 'pending';
+    }
+
+    // ── pairs（紀念日等共享文件）────────────────────────────
+    match /pairs/{pairId} {
+      allow read: if isSignedIn() && uid() in resource.data.members;
+
+      // 建立：members 必須剛好是「我」和「我目前的伴侶」兩人
+      allow create: if isSignedIn()
+        && request.resource.data.members.size() == 2
+        && request.resource.data.members.hasOnly([uid(), myPartner()])
+        && uid() in request.resource.data.members;
+
+      // 更新：須為現有成員（編輯 events 等）
+      allow update: if isSignedIn() && uid() in resource.data.members;
+
+      allow delete: if false;
+
+      // 悄悄話：只有 pair 成員能讀；發文者必為自己；發出後不可改/刪
+      match /posts/{postId} {
+        function pairMembers() {
+          return get(/databases/$(database)/documents/pairs/$(pairId)).data.members;
+        }
+        allow read: if isSignedIn() && uid() in pairMembers();
+        allow create: if isSignedIn()
+          && uid() in pairMembers()
+          && request.resource.data.authorId == uid();
+        allow update, delete: if false;
+      }
+    }
+
+    // ── pairCodes ────────────────────────────────────────
+    match /pairCodes/{code} {
+      // 加入者需讀取配對碼以取得擁有者，故登入者皆可讀
+      allow read: if isSignedIn();
+      // 建立：擁有者必為自己
+      allow create: if isSignedIn() && request.resource.data.ownerId == uid();
+      // 刪除：配對完成（加入者刪除）或重新產生（擁有者刪除）皆需要
+      allow delete: if isSignedIn();
+      // 配對碼產生即固定，不允許更新
+      allow update: if false;
+    }
+  }
+}
