@@ -112,25 +112,44 @@ class PairService {
     return List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
   }
 
-  /// 生成配對碼，存入 pairCodes collection 並更新自己的 user 文件
+  /// 生成配對碼，存入 pairCodes collection 並更新自己的 user 文件。
+  /// 用 transaction 確保：(1) 不覆蓋既有的 code（碰撞時換碼重試）、
+  /// (2) 同時刪除自己上一個尚未使用的舊 code，避免多個有效碼並存。
   Future<String> generatePairCode() async {
     final uid = _auth.currentUser!.uid;
-    final code = _generateCode();
+    final userRef = _db.collection('users').doc(uid);
     final expiresAt = DateTime.now().add(const Duration(minutes: 10));
 
-    final batch = _db.batch();
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final code = _generateCode();
+      final codeRef = _db.collection('pairCodes').doc(code);
+      try {
+        await _db.runTransaction((tx) async {
+          // 讀取必須在寫入之前
+          final codeSnap = await tx.get(codeRef);
+          if (codeSnap.exists) throw const _CodeCollision();
+          final userSnap = await tx.get(userRef);
+          final oldCode = userSnap.data()?['pairCode'] as String?;
 
-    batch.set(_db.collection('pairCodes').doc(code), {
-      'code': code,
-      'ownerId': uid,
-      'createdAt': FieldValue.serverTimestamp(),
-      'expiresAt': Timestamp.fromDate(expiresAt),
-    });
-
-    batch.update(_db.collection('users').doc(uid), {'pairCode': code});
-
-    await batch.commit();
-    return code;
+          tx.set(codeRef, {
+            'code': code,
+            'ownerId': uid,
+            'createdAt': FieldValue.serverTimestamp(),
+            'expiresAt': Timestamp.fromDate(expiresAt),
+          });
+          tx.update(userRef, {'pairCode': code});
+          // 刪除上一個尚未使用的舊配對碼
+          if (oldCode != null && oldCode != code) {
+            tx.delete(_db.collection('pairCodes').doc(oldCode));
+          }
+        });
+        return code;
+      } on _CodeCollision {
+        // 碰撞（極罕見）：換一組碼重試
+        continue;
+      }
+    }
+    throw Exception('產生配對碼失敗，請稍後再試');
   }
 
   /// 輸入配對碼，將雙方綁定為 partner
@@ -176,4 +195,9 @@ class PairService {
     batch.update(_db.collection('users').doc(partnerId), {'partnerId': null});
     await batch.commit();
   }
+}
+
+/// 配對碼碰撞時的內部訊號，用於觸發換碼重試（不外洩給呼叫端）
+class _CodeCollision implements Exception {
+  const _CodeCollision();
 }
