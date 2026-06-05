@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       _goHome();
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await _auth.signInWithGoogle();
       if (user != null) _goHome();
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -64,6 +64,14 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
   }
 
   @override

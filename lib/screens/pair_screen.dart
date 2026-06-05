@@ -17,12 +17,13 @@ class _PairScreenState extends State<PairScreen> {
   Future<void> _generate() async {
     try {
       final code = await _pairService.generatePairCode();
+      if (!mounted) return;
       setState(() {
         _generatedCode = code;
         _message = null;
       });
     } catch (e) {
-      setState(() => _message = '錯誤：$e');
+      if (mounted) setState(() => _message = '錯誤：$e');
     }
   }
 
@@ -35,8 +36,14 @@ class _PairScreenState extends State<PairScreen> {
       );
       Navigator.of(context).pop(); // 返回首頁，首頁會透過 stream 即時更新配對狀態
     } catch (e) {
-      setState(() => _message = '錯誤：$e');
+      if (mounted) setState(() => _message = '錯誤：$e');
     }
+  }
+
+  @override
+  void dispose() {
+    _codeCtrl.dispose();
+    super.dispose();
   }
 
   @override

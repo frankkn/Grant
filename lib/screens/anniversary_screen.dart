@@ -185,10 +185,12 @@ class _EventEditorState extends State<_EventEditor> {
       await PairService().saveEvent(widget.partnerId, event);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() {
-        _error = '錯誤：$e';
-        _saving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = '錯誤：$e';
+          _saving = false;
+        });
+      }
     }
   }
 
@@ -198,10 +200,12 @@ class _EventEditorState extends State<_EventEditor> {
       await PairService().deleteEvent(widget.partnerId, widget.event!.id);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() {
-        _error = '錯誤：$e';
-        _saving = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = '錯誤：$e';
+          _saving = false;
+        });
+      }
     }
   }
 

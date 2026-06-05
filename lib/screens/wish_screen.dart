@@ -128,7 +128,7 @@ class _WishScreenState extends State<WishScreen> {
         );
       }
     } catch (e) {
-      setState(() => _message = '錯誤：$e');
+      if (mounted) setState(() => _message = '錯誤：$e');
     }
   }
 
@@ -140,6 +140,16 @@ class _WishScreenState extends State<WishScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _scheduledAt = picked);
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _priceCtrl.dispose();
+    _productUrlCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _reasonCtrl.dispose();
+    super.dispose();
   }
 
   @override
@@ -751,6 +761,7 @@ class _WishScreenState extends State<WishScreen> {
         }
       }
     }
+    noteCtrl.dispose();
   }
 
   /// 可實際審核的待審願望數（排除尚未解鎖的秘密許願，否則紅點永遠清不掉）

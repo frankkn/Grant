@@ -27,10 +27,16 @@ class _NameSetupScreenState extends State<NameSetupScreen> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
       }
     } catch (e) {
-      setState(() => _error = '錯誤：$e');
+      if (mounted) setState(() => _error = '錯誤：$e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
   }
 
   @override

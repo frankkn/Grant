@@ -63,7 +63,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      setState(() => _message = '錯誤：$e');
+      if (mounted) setState(() => _message = '錯誤：$e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -77,6 +77,16 @@ class _EditWishScreenState extends State<EditWishScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _scheduledAt = picked);
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _priceCtrl.dispose();
+    _productUrlCtrl.dispose();
+    _descriptionCtrl.dispose();
+    _reasonCtrl.dispose();
+    super.dispose();
   }
 
   @override

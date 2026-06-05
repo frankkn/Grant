@@ -5,7 +5,20 @@
       "PowerShell(Get-ChildItem \"C:\\\\\", \"$env:LOCALAPPDATA\", \"$env:USERPROFILE\" -Filter \"flutter\" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 5 FullName)",
       "PowerShell(Get-ChildItem \"C:\\\\src\", \"C:\\\\flutter\", \"C:\\\\tools\", \"$env:USERPROFILE\\\\flutter\", \"$env:USERPROFILE\\\\development\" -ErrorAction SilentlyContinue | Select-Object FullName)",
       "Read(//c/Users/FRANK2~1/AppData/Local/Temp/claude/c--Users-frank2-yang-Desktop-Grant/bfe29042-c748-49a2-9f9a-dcbb2945a33d/tasks/**)",
-      "PowerShell(Start-Process \"ms-settings:developers\")"
+      "PowerShell(Start-Process \"ms-settings:developers\")",
+      "Bash(ls -la \"c:/Users/frank/OneDrive/Desktop/Grant\" && ls -la \"c:/Users/frank/OneDrive/Desktop/\" | grep -i \"backend\\\\|railway\\\\|server\\\\|api\")",
+      "Read(//c/Users/frank/OneDrive/Desktop/**)",
+      "Bash(gh api *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(flutter analyze *)",
+      "PowerShell($f = \\(Get-Command flutter -ErrorAction SilentlyContinue\\); if \\($f\\) { $f.Source } else { \"flutter not on PATH\" })",
+      "PowerShell($paths = @\\(\"$env:LOCALAPPDATA\\\\flutter\\\\bin\\\\flutter.bat\",\"$env:USERPROFILE\\\\flutter\\\\bin\\\\flutter.bat\",\"C:\\\\flutter\\\\bin\\\\flutter.bat\",\"C:\\\\src\\\\flutter\\\\bin\\\\flutter.bat\",\"$env:LOCALAPPDATA\\\\Pub\\\\Cache\\\\bin\\\\flutter.bat\"\\); foreach \\($p in $paths\\) { if \\(Test-Path $p\\) { Write-Output \"FOUND: $p\" } }; Get-ChildItem -Path C:\\\\ -Filter \"flutter.bat\" -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object -First 3 -ExpandProperty FullName)",
+      "PowerShell($env:Path = \"C:\\\\Users\\\\frank\\\\development\\\\flutter\\\\bin;$env:Path\"; flutter test test/bug_fixes_test.dart 2>&1 | Select-Object -Last 40)",
+      "PowerShell($env:Path = \"C:\\\\Users\\\\frank\\\\development\\\\flutter\\\\bin;$env:Path\"; flutter analyze 2>&1 | Select-Object -Last 30)",
+      "PowerShell($env:Path = \"C:\\\\Users\\\\frank\\\\development\\\\flutter\\\\bin;$env:Path\"; flutter test 2>&1 | Select-Object -Last 30)"
     ]
   }
 }

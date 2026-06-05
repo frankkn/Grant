@@ -275,8 +275,14 @@ class _UnpairDialogState extends State<_UnpairDialog> {
         Navigator.of(context).pop(); // 返回首頁
       }
     } catch (e) {
-      setState(() { _error = '錯誤：$e'; _isLoading = false; });
+      if (mounted) setState(() { _error = '錯誤：$e'; _isLoading = false; });
     }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
   }
 
   @override
