@@ -433,13 +433,15 @@ class _SecretUnlockBanner extends StatelessWidget {
         }
         final soonest = secrets.reduce(
             (a, b) => a.scheduledAt.isBefore(b.scheduledAt) ? a : b);
-        final days = soonest.scheduledAt
-            .difference(DateTime.now())
-            .inDays;
+        // 無條件進位：剩 1.9 天應顯示「2 天」而非截斷成「1 天」。
+        // 此分支只在仍有未解鎖秘密時出現（scheduledAt > now），故至少為 1。
+        final minutes =
+            soonest.scheduledAt.difference(DateTime.now()).inMinutes;
+        final days = (minutes / (60 * 24)).ceil();
         return _InfoBanner(
           icon: Icons.lock_clock,
           color: Colors.deepPurple,
-          text: '神秘心願將在 ${days <= 0 ? 1 : days} 天後解鎖 🎁',
+          text: '神秘心願將在 ${days < 1 ? 1 : days} 天後解鎖 🎁',
         );
       },
     );

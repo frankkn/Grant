@@ -31,12 +31,24 @@ class AnniversaryEvent {
   DateTime get nextOccurrence {
     final today = DateTime.now();
     final t = DateTime(today.year, today.month, today.day);
-    var next = DateTime(today.year, date.month, date.day);
+    var next = _occurrenceInYear(today.year);
     if (next.isBefore(t)) {
-      next = DateTime(today.year + 1, date.month, date.day);
+      next = _occurrenceInYear(today.year + 1);
     }
     return next;
   }
+
+  /// 指定年份的週年日。平年沒有 2/29 → 以 2/28 表示，
+  /// 避免 DateTime(year, 2, 29) 在平年溢位成 3/1（與後端推播一致）。
+  DateTime _occurrenceInYear(int year) {
+    if (date.month == 2 && date.day == 29 && !_isLeapYear(year)) {
+      return DateTime(year, 2, 28);
+    }
+    return DateTime(year, date.month, date.day);
+  }
+
+  static bool _isLeapYear(int y) =>
+      (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
 
   /// 距離下一次週年還有幾天（0 = 今天）
   int get daysUntilNext {

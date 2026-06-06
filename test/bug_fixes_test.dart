@@ -192,6 +192,169 @@ void main() {
     });
   });
 
+  // ─── 秘密願望內容隔離（內容移至 private/detail 子文件）──────────────
+  group('秘密願望內容隔離', () {
+    late FakeFirebaseFirestore db;
+
+    // 主文件（meta，不含敏感內容）
+    Map<String, dynamic> meta({
+      required String requester,
+      required String partner,
+      String status = 'pending',
+      bool isSecret = true,
+      required DateTime scheduledAt,
+    }) => {
+      'requesterId': requester,
+      'partnerId': partner,
+      'heartRating': 3,
+      'category': '禮物',
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'status': status,
+      'isSecret': isSecret,
+      'isFulfilled': false,
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
+    };
+
+    Future<void> seedSecret({
+      required String id,
+      required String requester,
+      required String partner,
+      required DateTime scheduledAt,
+      String title = '驚喜內容',
+    }) async {
+      await db.collection('wishes').doc(id).set(meta(
+            requester: requester,
+            partner: partner,
+            scheduledAt: scheduledAt,
+          ));
+      await db
+          .collection('wishes')
+          .doc(id)
+          .collection('private')
+          .doc('detail')
+          .set({'title': title, 'price': '500', 'reason': '想送你'});
+    }
+
+    setUp(() => db = FakeFirebaseFirestore());
+
+    WishService asUser(String uid) => WishService(
+          db: db,
+          auth: MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: uid)),
+        );
+
+    test('許願者讀自己的秘密願望 → overlay 補回內容（即使尚未解鎖）', () async {
+      await seedSecret(
+        id: 'w1',
+        requester: 'me',
+        partner: 'P1',
+        scheduledAt: DateTime.now().add(const Duration(days: 5)),
+      );
+      final list = await asUser('me').watchMyWishes('P1').first;
+      expect(list.single.title, '驚喜內容');
+    });
+
+    test('伴侶在解鎖前 → 內容被遮蔽（title 為空），但 meta 仍在', () async {
+      await seedSecret(
+        id: 'w2',
+        requester: 'P1',
+        partner: 'me',
+        scheduledAt: DateTime.now().add(const Duration(days: 5)),
+      );
+      final list = await asUser('me').watchIncomingWishes('P1').first;
+      expect(list.single.title, '', reason: '解鎖前伴侶不該看到內容');
+      expect(list.single.category, '禮物', reason: 'meta 仍可見，鎖定卡才顯示得出來');
+      expect(list.single.isLockedSecret, isTrue);
+    });
+
+    test('伴侶在解鎖後 → overlay 補回內容', () async {
+      await seedSecret(
+        id: 'w3',
+        requester: 'P1',
+        partner: 'me',
+        scheduledAt: DateTime.now().subtract(const Duration(days: 1)),
+      );
+      final list = await asUser('me').watchIncomingWishes('P1').first;
+      expect(list.single.title, '驚喜內容');
+      expect(list.single.isLockedSecret, isFalse);
+    });
+
+    test('updateWish 公開→秘密：主文件移除內容欄位、內容寫入 private/detail', () async {
+      await db.collection('wishes').doc('w4').set(wishMap(
+            requester: 'me',
+            partner: 'P1',
+            title: '原本公開',
+          ));
+      await asUser('me').updateWish(
+        wishId: 'w4',
+        title: '改成秘密',
+        price: '800',
+        heartRating: 4,
+        reason: '理由',
+        scheduledAt: DateTime.now().add(const Duration(days: 2)),
+        category: '旅行',
+        isSecret: true,
+      );
+      final main = (await db.collection('wishes').doc('w4').get()).data()!;
+      expect(main.containsKey('title'), isFalse, reason: '主文件不該再有內容欄位');
+      expect(main['isSecret'], isTrue);
+      final detail = await db
+          .collection('wishes')
+          .doc('w4')
+          .collection('private')
+          .doc('detail')
+          .get();
+      expect(detail.data()?['title'], '改成秘密');
+    });
+
+    test('updateWish 秘密→公開：內容回主文件、刪除 private/detail', () async {
+      await seedSecret(
+        id: 'w5',
+        requester: 'me',
+        partner: 'P1',
+        scheduledAt: DateTime.now().add(const Duration(days: 3)),
+      );
+      await asUser('me').updateWish(
+        wishId: 'w5',
+        title: '改成公開',
+        price: '300',
+        heartRating: 2,
+        reason: '理由',
+        scheduledAt: DateTime.now().add(const Duration(days: 3)),
+        category: '禮物',
+        isSecret: false,
+      );
+      final main = (await db.collection('wishes').doc('w5').get()).data()!;
+      expect(main['title'], '改成公開', reason: '公開願望內容回到主文件');
+      final detail = await db
+          .collection('wishes')
+          .doc('w5')
+          .collection('private')
+          .doc('detail')
+          .get();
+      expect(detail.exists, isFalse, reason: 'detail 子文件應被刪除');
+    });
+
+    test('deleteWish 一併刪除 private/detail 子文件', () async {
+      await seedSecret(
+        id: 'w6',
+        requester: 'me',
+        partner: 'P1',
+        scheduledAt: DateTime.now().add(const Duration(days: 3)),
+      );
+      await asUser('me').deleteWish('w6');
+      final main = await db.collection('wishes').doc('w6').get();
+      final detail = await db
+          .collection('wishes')
+          .doc('w6')
+          .collection('private')
+          .doc('detail')
+          .get();
+      expect(main.exists, isFalse);
+      expect(detail.exists, isFalse);
+    });
+  });
+
   // ─── Bug 7：UserModel 容錯解析 ─────────────────────────────────────
   group('Bug 7 — UserModel.fromDoc 容錯解析', () {
     late FakeFirebaseFirestore db;

@@ -83,7 +83,12 @@ class NotificationService {
   Future<void> _saveTokenString(String token) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
-    await _db.collection('users').doc(uid).update({'fcmToken': token});
+    // set+merge 而非 update：token 重整可能早於使用者文件建立（首次登入競態），
+    // update 會丟 NOT_FOUND；merge 則安全地建立／更新單一欄位。
+    await _db
+        .collection('users')
+        .doc(uid)
+        .set({'fcmToken': token}, SetOptions(merge: true));
   }
 
   Future<void> sendWishNotification({

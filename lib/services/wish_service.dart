@@ -14,6 +14,31 @@ class WishService {
 
   String get _myUid => _auth.currentUser!.uid;
 
+  /// 秘密願望的內容子文件 wishes/{id}/private/detail
+  DocumentReference<Map<String, dynamic>> _detailRef(String wishId) =>
+      _db.collection('wishes').doc(wishId).collection('private').doc('detail');
+
+  /// 把秘密願望的內容（存在 private/detail）覆蓋回 WishModel。
+  /// - 公開願望：內容本就在主文件，原樣返回。
+  /// - 秘密願望（我是許願者，或已解鎖）：讀子文件補上內容。
+  /// - 秘密願望（我是伴侶且未解鎖）：清空內容，連同遮蔽舊資料可能殘留在主文件者。
+  Future<WishModel> _overlayDetail(WishModel w) async {
+    if (!w.isSecret) return w;
+    final mine = w.requesterId == _myUid;
+    if (!mine && w.isLockedSecret) return w.redactedContent();
+    try {
+      final snap = await _detailRef(w.id).get();
+      final data = snap.data();
+      if (data != null) return w.withContent(data);
+    } catch (_) {
+      // 權限不足（理論上不會走到）或讀取失敗：保持主文件內容，不中斷串流
+    }
+    return w;
+  }
+
+  Future<List<WishModel>> _overlayList(List<WishModel> list) =>
+      Future.wait(list.map(_overlayDetail));
+
   /// 送出許願
   Future<void> createWish({
     required String partnerId,
@@ -46,7 +71,16 @@ class WishService {
       createdAt: now,
       updatedAt: now,
     );
-    await ref.set(wish.toMap());
+    // 秘密願望：內容寫進 private/detail 子文件，主文件只留 meta，伴侶解鎖前讀不到內容。
+    // 公開願望：內容與 meta 一起寫在主文件（沿用原行為）。
+    final batch = _db.batch();
+    if (isSecret) {
+      batch.set(ref, wish.toMetaMap());
+      batch.set(_detailRef(ref.id), wish.toContentMap());
+    } else {
+      batch.set(ref, {...wish.toMetaMap(), ...wish.toContentMap()});
+    }
+    await batch.commit();
 
     // 秘密許願通知文字不透露內容
     final notifyTitle = isSecret ? '🔒 有個秘密心願在等你…' : title;
@@ -62,10 +96,10 @@ class WishService {
         .collection('wishes')
         .where('requesterId', isEqualTo: _myUid)
         .snapshots()
-        .map((snap) => snap.docs
+        .asyncMap((snap) => _overlayList(snap.docs
             .map(WishModel.fromDoc)
             .where((w) => w.partnerId == partnerId)
-            .toList());
+            .toList()));
   }
 
   /// 監聽待我審核的許願（目前另一半送給我的）
@@ -75,10 +109,10 @@ class WishService {
         .where('partnerId', isEqualTo: _myUid)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snap) => snap.docs
+        .asyncMap((snap) => _overlayList(snap.docs
             .map(WishModel.fromDoc)
             .where((w) => w.requesterId == partnerId)
-            .toList());
+            .toList()));
   }
 
   /// 編輯許願（只允許 pending 狀態，且只有許願者本人）
@@ -95,30 +129,48 @@ class WishService {
     bool isSecret = false,
   }) async {
     final ref = _db.collection('wishes').doc(wishId);
+    final detailRef = _detailRef(wishId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('找不到此願望');
       final wish = WishModel.fromDoc(snap);
       if (wish.requesterId != _myUid) throw Exception('無權修改此願望');
       if (wish.status != WishStatus.pending) throw Exception('只能修改待審核的願望');
-      tx.update(ref, {
-        'title': title,
-        'price': price,
+
+      final meta = {
         'heartRating': heartRating,
-        'productUrl': productUrl,
-        'description': description,
-        'reason': reason,
         'scheduledAt': Timestamp.fromDate(scheduledAt),
         'category': category,
         'isSecret': isSecret,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      final content = {
+        'title': title,
+        'price': price,
+        'productUrl': productUrl,
+        'description': description,
+        'reason': reason,
+      };
+
+      if (isSecret) {
+        // 內容移到 private/detail；主文件清掉任何殘留的內容欄位（含公開→秘密的切換）
+        tx.update(ref, {
+          ...meta,
+          for (final k in WishModel.contentKeys) k: FieldValue.delete(),
+        });
+        tx.set(detailRef, content);
+      } else {
+        // 內容回到主文件；刪除可能存在的 detail 子文件（含秘密→公開的切換）
+        tx.update(ref, {...meta, ...content});
+        tx.delete(detailRef);
+      }
     });
   }
 
   /// 刪除許願（只允許 pending 狀態，且只有許願者本人）
   Future<void> deleteWish(String wishId) async {
     final ref = _db.collection('wishes').doc(wishId);
+    final detailRef = _detailRef(wishId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
       if (!snap.exists) throw Exception('找不到此願望');
@@ -126,19 +178,33 @@ class WishService {
       if (wish.requesterId != _myUid) throw Exception('無權刪除此願望');
       if (wish.status != WishStatus.pending) throw Exception('只能刪除待審核的願望');
       tx.delete(ref);
+      tx.delete(detailRef); // 一併清掉秘密內容子文件（公開願望則為 no-op）
     });
   }
 
-  /// 切換願望是否已實現，可附上感謝話
+  /// 切換願望是否已實現，可附上感謝話。
+  /// 僅限「已通過（approved）」的願望，且須為當事雙方之一——與 firestore.rules 一致。
   Future<void> setWishFulfilled({
     required String wishId,
     required bool isFulfilled,
     String? fulfillmentNote,
   }) async {
-    await _db.collection('wishes').doc(wishId).update({
-      'isFulfilled': isFulfilled,
-      if (fulfillmentNote != null) 'fulfillmentNote': fulfillmentNote,
-      'updatedAt': FieldValue.serverTimestamp(),
+    final ref = _db.collection('wishes').doc(wishId);
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      final wish = WishModel.fromDoc(snap);
+      if (wish.requesterId != _myUid && wish.partnerId != _myUid) {
+        throw Exception('無權更新此願望');
+      }
+      if (wish.status != WishStatus.approved) {
+        throw Exception('只能標記已通過的願望為已實現');
+      }
+      tx.update(ref, {
+        'isFulfilled': isFulfilled,
+        if (fulfillmentNote != null) 'fulfillmentNote': fulfillmentNote,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -166,11 +232,11 @@ class WishService {
             .where('isFulfilled', isEqualTo: true)
             .snapshots()
             .listen(
-              (snap) {
-                latestMine = snap.docs
+              (snap) async {
+                latestMine = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.partnerId == partnerId)
-                    .toList();
+                    .toList());
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -181,11 +247,11 @@ class WishService {
             .where('isFulfilled', isEqualTo: true)
             .snapshots()
             .listen(
-              (snap) {
-                latestReviewed = snap.docs
+              (snap) async {
+                latestReviewed = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.requesterId == partnerId)
-                    .toList();
+                    .toList());
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -221,11 +287,11 @@ class WishService {
             .where('requesterId', isEqualTo: _myUid)
             .snapshots()
             .listen(
-              (snap) {
-                latestMine = snap.docs
+              (snap) async {
+                latestMine = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.partnerId == partnerId)
-                    .toList();
+                    .toList());
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -235,11 +301,11 @@ class WishService {
             .where('partnerId', isEqualTo: _myUid)
             .snapshots()
             .listen(
-              (snap) {
-                latestTheirs = snap.docs
+              (snap) async {
+                latestTheirs = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.requesterId == partnerId)
-                    .toList();
+                    .toList());
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -259,12 +325,12 @@ class WishService {
         .collection('wishes')
         .where('partnerId', isEqualTo: _myUid)
         .snapshots()
-        .map(
-          (snap) => snap.docs
+        .asyncMap(
+          (snap) => _overlayList(snap.docs
               .map(WishModel.fromDoc)
               .where((w) =>
                   w.status != WishStatus.pending && w.requesterId == partnerId)
-              .toList(),
+              .toList()),
         );
   }
 

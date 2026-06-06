@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "comment": "後端每日工作只掃描『已到解鎖時間』的秘密願望，避免全集合掃描。對應 server.js notifySecretUnlocks。",
+      "collectionGroup": "wishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isSecret", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

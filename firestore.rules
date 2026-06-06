@@ -80,7 +80,9 @@ service cloud.firestore {
             && request.resource.data.status in ['approved', 'rejected'] )
           ||
           // 4) 任一方切換「已實現」狀態（不改變 status，只動 fulfillment 欄位）
+          //    僅限「已通過（approved）」的願望，避免把待審核 / 被婉拒的願望標成已實現
           ( (resource.data.requesterId == uid() || resource.data.partnerId == uid())
+            && resource.data.status == 'approved'
             && request.resource.data.status == resource.data.status
             && onlyChanges(['isFulfilled', 'fulfillmentNote', 'updatedAt']) )
         );
@@ -89,6 +91,30 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && resource.data.requesterId == uid()
         && resource.data.status == 'pending';
+
+      // ── 秘密願望內容（標題 / 價格 / 描述 / 理由 / 網址）──────────
+      // 公開願望內容仍在主文件；此子文件僅供秘密願望使用，
+      // 在解鎖日（scheduledAt）之前對「伴侶」完全隱藏，杜絕提前偷看驚喜。
+      match /private/{docId} {
+        function wish() {
+          return get(/databases/$(database)/documents/wishes/$(wishId)).data;
+        }
+        // getAfter：建立願望與其內容於同一批次時，主文件在 get() 下尚未可見，
+        // 需看「提交後」狀態才能取得 requesterId / status。
+        function wishAfter() {
+          return getAfter(/databases/$(database)/documents/wishes/$(wishId)).data;
+        }
+        allow read: if isSignedIn() && (
+          wish().requesterId == uid()
+          ||
+          ( wish().partnerId == uid() && wish().scheduledAt <= request.time )
+        );
+        // 只有許願者本人、且願望仍在 pending 時可寫內容（與主文件編輯規則一致）
+        allow create, update: if isSignedIn()
+          && wishAfter().requesterId == uid()
+          && wishAfter().status == 'pending';
+        allow delete: if isSignedIn() && wish().requesterId == uid();
+      }
     }
 
     // ── pairs（紀念日等共享文件）────────────────────────────
