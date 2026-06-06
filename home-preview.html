@@ -8,10 +8,12 @@
   <style>
     :root {
       /* 可由滑桿即時調整的版面參數 */
-      --btn-width: 200px;    /* 按鈕寬度 */
-      --btn-x: 0px;          /* 水平位移 (+右 / -左) */
+      --btn-width: 161px;    /* 按鈕寬度（對齊 Flutter SizedBox width）*/
+      --btn-x: -16px;        /* 水平位移 (+右 / -左)，對齊 Transform.translate */
       --stack-top: 50%;      /* 垂直位置 (距按鈕區頂部) */
-      --btn-gap: 16px;       /* 按鈕之間間距 */
+      --btn-gap: 17px;       /* 按鈕之間間距（對齊 SizedBox height: 17）*/
+      --btn-pad-v: 16px;     /* 垂直內距（對齊 EdgeInsets.symmetric vertical:16）*/
+      --btn-pad-h: 0px;      /* 水平內距（Flutter 為 0，寬度由 SizedBox 決定）*/
       --btn-shadow: 0.40;    /* 陰影強度 (alpha) */
       --btn-color: #FCE4EC;  /* 按鈕底色 (pink.shade50，同問候卡片) */
       --btn-text: #C2185B;   /* 按鈕文字/圖示顏色 */
@@ -116,13 +118,15 @@
       border-radius: 14px;
       background: var(--btn-color);
       color: var(--btn-text);
-      padding: 16px;
+      padding: var(--btn-pad-v) var(--btn-pad-h);
       font-size: 16px;
       font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
+      /* 對齊 Flutter：單一 Text 放在 Row 不折行；空間不足是溢出而非斷兩行 */
+      white-space: nowrap;
       cursor: pointer;
       box-shadow: 0 6px 12px rgba(233, 30, 99, var(--btn-shadow));
       transition: transform .08s;
@@ -130,6 +134,18 @@
     .nbtn:active { transform: scale(.98); }
     .nbtn .material-icons-outlined,
     .nbtn .material-icons { font-size: 20px; }
+    /* 審核願望的紅色待審徽章（對應 _CountChip）；
+       左側 .ghost 為隱形同尺寸佔位，讓圖示＋文字維持置中、與其他按鈕對齊 */
+    .nbtn .badge {
+      min-width: 18px; height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      background: #f44336; color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+      flex: none;
+    }
+    .nbtn .badge.ghost { visibility: hidden; }
 
     /* ---- 右側控制面板 ---- */
     .panel {
@@ -181,8 +197,9 @@
           <div class="btn-stack">
             <button class="nbtn"><span class="material-icons">star</span>前往許願</button>
             <button class="nbtn"><span class="material-icons-outlined">list_alt</span>願望清單</button>
-            <button class="nbtn"><span class="material-icons-outlined">fact_check</span>審核願望</button>
+            <button class="nbtn"><span class="badge ghost">2</span><span class="material-icons-outlined">fact_check</span>審核願望<span class="badge">2</span></button>
             <button class="nbtn"><span class="material-icons-outlined">auto_stories</span>回憶牆</button>
+            <button class="nbtn"><span class="material-icons-outlined">chat_bubble_outline</span>悄悄話</button>
           </div>
         </div>
       </div>
@@ -195,20 +212,28 @@
     <p class="hint">拖滑桿即時預覽，不用重 build。調到滿意把下方數值告訴我，我套回 Flutter。</p>
 
     <div class="ctrl">
-      <label>按鈕寬度 <b id="v-width">200</b>px</label>
-      <input type="range" id="width" min="120" max="340" value="200" />
+      <label>按鈕寬度 <b id="v-width">161</b>px</label>
+      <input type="range" id="width" min="120" max="340" value="161" />
     </div>
     <div class="ctrl">
-      <label>水平位移 <b id="v-x">0</b>px（-左 / +右）</label>
-      <input type="range" id="x" min="-100" max="100" value="0" />
+      <label>水平位移 <b id="v-x">-16</b>px（-左 / +右）</label>
+      <input type="range" id="x" min="-100" max="100" value="-16" />
     </div>
     <div class="ctrl">
       <label>垂直位置 <b id="v-top">50</b>%</label>
       <input type="range" id="top" min="0" max="100" value="50" />
     </div>
     <div class="ctrl">
-      <label>按鈕間距 <b id="v-gap">16</b>px</label>
-      <input type="range" id="gap" min="0" max="48" value="16" />
+      <label>按鈕間距 <b id="v-gap">17</b>px</label>
+      <input type="range" id="gap" min="0" max="48" value="17" />
+    </div>
+    <div class="ctrl">
+      <label>垂直內距 <b id="v-padv">16</b>px（按鈕厚度）</label>
+      <input type="range" id="padv" min="0" max="40" value="16" />
+    </div>
+    <div class="ctrl">
+      <label>水平內距 <b id="v-padh">0</b>px（固定寬度下不改變按鈕寬）</label>
+      <input type="range" id="padh" min="0" max="40" value="0" />
     </div>
     <div class="ctrl">
       <label>陰影強度 <b id="v-shadow">0.40</b></label>
@@ -235,6 +260,8 @@
       const x = $('x').value;
       const top = $('top').value;
       const gap = $('gap').value;
+      const padv = $('padv').value;
+      const padh = $('padh').value;
       const shadow = ($('shadow').value / 100).toFixed(2);
       const color = $('color').value;
       const text = $('text').value;
@@ -243,6 +270,8 @@
       root.style.setProperty('--btn-x', x + 'px');
       root.style.setProperty('--stack-top', top + '%');
       root.style.setProperty('--btn-gap', gap + 'px');
+      root.style.setProperty('--btn-pad-v', padv + 'px');
+      root.style.setProperty('--btn-pad-h', padh + 'px');
       root.style.setProperty('--btn-shadow', shadow);
       root.style.setProperty('--btn-color', color);
       root.style.setProperty('--btn-text', text);
@@ -251,15 +280,17 @@
       $('v-x').textContent = x;
       $('v-top').textContent = top;
       $('v-gap').textContent = gap;
+      $('v-padv').textContent = padv;
+      $('v-padh').textContent = padh;
       $('v-shadow').textContent = shadow;
       $('v-color').textContent = color.toUpperCase();
       $('v-text').textContent = text.toUpperCase();
 
       $('summary').textContent =
-        `按鈕寬度: ${width}px\n水平位移: ${x}px\n垂直位置: ${top}%\n按鈕間距: ${gap}px\n陰影強度: ${shadow}\n按鈕底色: ${color.toUpperCase()}\n按鈕文字色: ${text.toUpperCase()}`;
+        `按鈕寬度: ${width}px\n水平位移: ${x}px\n垂直位置: ${top}%\n按鈕間距: ${gap}px\n垂直內距: ${padv}px\n水平內距: ${padh}px\n陰影強度: ${shadow}\n按鈕底色: ${color.toUpperCase()}\n按鈕文字色: ${text.toUpperCase()}`;
     }
 
-    ['width', 'x', 'top', 'gap', 'shadow', 'color', 'text'].forEach(id =>
+    ['width', 'x', 'top', 'gap', 'padv', 'padh', 'shadow', 'color', 'text'].forEach(id =>
       $(id).addEventListener('input', update));
     update();
   </script>

@@ -146,9 +146,9 @@ class HomeScreen extends StatelessWidget {
                           )
                         : Transform.translate(
                             // 往左移，對齊偏左的筆記本
-                            offset: const Offset(-16, 0),
+                            offset: const Offset(-15, 0),
                             child: SizedBox(
-                              width: 161,
+                              width: 150,
                               child: SingleChildScrollView(
                                 child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -158,13 +158,13 @@ class HomeScreen extends StatelessWidget {
                                     label: '前往許願',
                                     onPressed: () => _openWish(context, user.partnerId!, 0),
                                   ),
-                                  const SizedBox(height: 17),
+                                  const SizedBox(height: 10),
                                   _NotebookButton(
                                     icon: Icons.list_alt,
                                     label: '願望清單',
                                     onPressed: () => _openWish(context, user.partnerId!, 1),
                                   ),
-                                  const SizedBox(height: 17),
+                                  const SizedBox(height: 10),
                                   StreamBuilder<List<WishModel>>(
                                     stream: WishService()
                                         .watchIncomingWishes(user.partnerId!),
@@ -177,7 +177,7 @@ class HomeScreen extends StatelessWidget {
                                       );
                                     },
                                   ),
-                                  const SizedBox(height: 17),
+                                  const SizedBox(height: 10),
                                   _NotebookButton(
                                     icon: Icons.auto_stories,
                                     label: '回憶牆',
@@ -193,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                                       );
                                     },
                                   ),
-                                  const SizedBox(height: 17),
+                                  const SizedBox(height: 10),
                                   _NotebookButton(
                                     icon: Icons.chat_bubble_outline,
                                     label: '悄悄話',
@@ -266,7 +266,7 @@ class _NotebookButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFFFCE4EC), // pink.shade50，同問候卡片
           foregroundColor: const Color(0xFFC2185B),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 9),
           elevation: 6,
           shadowColor: Colors.pink.withValues(alpha: 0.59),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
