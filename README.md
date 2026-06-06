@@ -1,6 +1,6 @@
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.10.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.10.0)
+[![Version](https://img.shields.io/badge/version-v1.10.1-pink)](https://github.com/frankkn/Grant/releases/tag/v1.10.1)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
@@ -122,6 +122,7 @@ flutter build apk --debug
 
 | 版本 | 日期 | 更新內容 |
 |------|------|---------|
+| v1.10.1 | 2026-06-06 | 介面微調：首頁筆記本按鈕縮窄並收進筆記本範圍內（寬度、間距、垂直內距調整），整體版面更協調 |
 | v1.10.0 | 2026-06-06 | 隱私與穩定性強化：秘密許願內容改存於受保護的子集合，解鎖日前另一半完全讀不到（資料庫規則層把關，非僅畫面隱藏）；僅「已通過」的願望可標記為已實現；修正秘密願望解鎖推播的時區誤差（避免提早一天）、2/29 紀念日在平年不會提醒、解鎖倒數天數顯示；改善首次登入推播 token 寫入容錯，以及後端每日推播查詢效能 |
 | v1.9.0 | 2026-06-06 | 安全性與穩定性強化：推播改為僅能發送給「目前的伴侶」（後端授權，防止濫發通知）；配對流程更健壯——配對成功後自動清除殘留配對碼、後端每日清理過期配對碼、錯誤回應更一致；修正網路／閘道異常時顯示技術性錯誤訊息的問題，改為友善提示 |
 | v1.8.0 | 2026-06-06 | 安全性強化：推播與配對改由後端驗證身分（Firebase ID Token），新增 Firestore 安全規則限制越權讀寫；配對流程改由後端原子處理，更穩定可靠；修正多處頁面資源未釋放與非同步狀態的潛在 crash、強化使用者資料解析容錯 |
