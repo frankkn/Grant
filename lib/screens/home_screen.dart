@@ -145,8 +145,8 @@ class HomeScreen extends StatelessWidget {
                             ),
                           )
                         : Transform.translate(
-                            // 往左移，對齊偏左的筆記本
-                            offset: const Offset(-15, 0),
+                            // 往左移對齊筆記本；y 往下 10px ≈ preview 垂直位置 52%（中心下移 2%）
+                            offset: const Offset(-15, 10),
                             child: SizedBox(
                               width: 150,
                               child: SingleChildScrollView(
