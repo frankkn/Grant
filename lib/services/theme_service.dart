@@ -10,7 +10,7 @@ class ThemeService {
 
   static const _key = 'theme_mode';
 
-  final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.system);
+  final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.light);
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -25,6 +25,6 @@ class ThemeService {
 
   static ThemeMode _parse(String? v) => ThemeMode.values.firstWhere(
         (e) => e.name == v,
-        orElse: () => ThemeMode.system,
+        orElse: () => ThemeMode.light,
       );
 }
