@@ -410,14 +410,23 @@ class _CountdownBanner extends StatelessWidget {
 }
 
 /// 即將／剛解鎖的神秘心願（不洩漏內容）
-class _SecretUnlockBanner extends StatelessWidget {
+class _SecretUnlockBanner extends StatefulWidget {
   final String partnerId;
   const _SecretUnlockBanner({required this.partnerId});
 
   @override
+  State<_SecretUnlockBanner> createState() => _SecretUnlockBannerState();
+}
+
+class _SecretUnlockBannerState extends State<_SecretUnlockBanner> {
+  // 建立一次後快取，避免每次 build 重新訂閱 Firestore。
+  late final Stream<List<WishModel>> _stream =
+      WishService().watchIncomingWishes(widget.partnerId);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<WishModel>>(
-      stream: WishService().watchIncomingWishes(partnerId),
+      stream: _stream,
       builder: (context, snap) {
         final secrets = (snap.data ?? []).where((w) => w.isSecret).toList();
         if (secrets.isEmpty) return const SizedBox.shrink();
@@ -452,7 +461,7 @@ class _SecretUnlockBanner extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => WishScreen(partnerId: partnerId, initialIndex: 2),
+        builder: (_) => WishScreen(partnerId: widget.partnerId, initialIndex: 2),
       ),
     );
   }

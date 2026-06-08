@@ -36,14 +36,24 @@ class MemoryWallScreen extends StatelessWidget {
 
 // ─────────────────────────── 時間軸 ───────────────────────────
 
-class _TimelineTab extends StatelessWidget {
+class _TimelineTab extends StatefulWidget {
   final String partnerId;
   const _TimelineTab({required this.partnerId});
 
   @override
+  State<_TimelineTab> createState() => _TimelineTabState();
+}
+
+class _TimelineTabState extends State<_TimelineTab> {
+  // 在 initState 建立一次：watchFulfilledWishes 內部會開兩個 Firestore listener，
+  // 若放在 build 會每次 rebuild 全部重建，浪費讀取並造成閃爍。
+  late final Stream<List<WishModel>> _stream =
+      WishService().watchFulfilledWishes(widget.partnerId);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<WishModel>>(
-      stream: WishService().watchFulfilledWishes(partnerId),
+      stream: _stream,
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -246,15 +256,24 @@ class _NoteBox extends StatelessWidget {
 
 // ─────────────────────────── 統計 ───────────────────────────
 
-class _StatsTab extends StatelessWidget {
+class _StatsTab extends StatefulWidget {
   final String partnerId;
   const _StatsTab({required this.partnerId});
+
+  @override
+  State<_StatsTab> createState() => _StatsTabState();
+}
+
+class _StatsTabState extends State<_StatsTab> {
+  // 同 _TimelineTab：watchAllWishes 也開兩個 listener，建立一次後快取。
+  late final Stream<List<WishModel>> _stream =
+      WishService().watchAllWishes(widget.partnerId);
 
   @override
   Widget build(BuildContext context) {
     final myUid = AuthService().currentUser?.uid;
     return StreamBuilder<List<WishModel>>(
-      stream: WishService().watchAllWishes(partnerId),
+      stream: _stream,
       builder: (context, snap) {
         if (!snap.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -276,7 +295,7 @@ class _StatsTab extends StatelessWidget {
             ),
           );
         }
-        return _StatsBody(all: all, myUid: myUid, partnerId: partnerId);
+        return _StatsBody(all: all, myUid: myUid, partnerId: widget.partnerId);
       },
     );
   }

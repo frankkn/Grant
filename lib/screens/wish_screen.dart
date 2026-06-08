@@ -34,6 +34,20 @@ class _WishScreenState extends State<WishScreen> {
   WishStatus? _reviewStatusFilter;
   bool _reviewFilterOpen = false;
 
+  // 監聽串流在 initState 建立一次後快取，避免每次 build 重新訂閱 Firestore
+  // （重訂＝重讀＝計費＋載入閃爍）。partnerId 在本畫面生命週期內固定。
+  late final Stream<List<WishModel>> _myWishesStream;
+  late final Stream<List<WishModel>> _incomingWishesStream;
+  late final Stream<List<WishModel>> _reviewedWishesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _myWishesStream = _wishService.watchMyWishes(widget.partnerId);
+    _incomingWishesStream = _wishService.watchIncomingWishes(widget.partnerId);
+    _reviewedWishesStream = _wishService.watchReviewedWishes(widget.partnerId);
+  }
+
   Future<void> _submit() async {
     final title = _titleCtrl.text.trim();
     final price = _priceCtrl.text.trim();
@@ -166,7 +180,7 @@ class _WishScreenState extends State<WishScreen> {
               const Tab(text: '我的許願'),
               Tab(
                 child: StreamBuilder<List<WishModel>>(
-                  stream: _wishService.watchIncomingWishes(widget.partnerId),
+                  stream: _incomingWishesStream,
                   builder: (context, snap) {
                     final count = _actionableCount(snap.data);
                     return Row(
@@ -379,7 +393,7 @@ class _WishScreenState extends State<WishScreen> {
 
   Widget _buildMyWishesTab() {
     return StreamBuilder<List<WishModel>>(
-      stream: _wishService.watchMyWishes(widget.partnerId),
+      stream: _myWishesStream,
       builder: (_, snap) {
         if (snap.hasError) {
           return Center(child: Text('錯誤：${snap.error}', style: const TextStyle(color: Colors.red)));
@@ -536,7 +550,7 @@ class _WishScreenState extends State<WishScreen> {
             ),
           ),
           StreamBuilder<List<WishModel>>(
-            stream: _wishService.watchIncomingWishes(widget.partnerId),
+            stream: _incomingWishesStream,
             builder: (_, snap) {
               if (snap.hasError) {
                 return SliverToBoxAdapter(
@@ -602,7 +616,7 @@ class _WishScreenState extends State<WishScreen> {
             ),
           ),
           StreamBuilder<List<WishModel>>(
-            stream: _wishService.watchReviewedWishes(widget.partnerId),
+            stream: _reviewedWishesStream,
             builder: (_, snap) {
               if (!snap.hasData) {
                 return const SliverToBoxAdapter(

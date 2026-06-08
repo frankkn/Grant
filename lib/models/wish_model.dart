@@ -65,7 +65,7 @@ class WishModel {
       description: data['description'] as String?,
       reason: (data['reason'] as String?) ?? '',
       scheduledAt: _dateFromTimestamp(data['scheduledAt']),
-      status: WishStatus.values.byName(data['status'] as String),
+      status: _statusFromName(data['status']),
       isSecret: (data['isSecret'] as bool?) ?? false,
       reviewNote: data['reviewNote'] as String?,
       category: data['category'] as String?,
@@ -80,6 +80,16 @@ class WishModel {
   static DateTime _dateFromTimestamp(Object? value) {
     if (value is Timestamp) return value.toDate();
     return DateTime.now();
+  }
+
+  /// 容錯解析 status：遇到未知 / 缺漏的字串時退回 pending，
+  /// 避免單一筆髒資料讓整條 stream（.map(fromDoc)）拋錯、整個清單掛掉。
+  static WishStatus _statusFromName(Object? value) {
+    if (value is String) {
+      final match = WishStatus.values.asNameMap()[value];
+      if (match != null) return match;
+    }
+    return WishStatus.pending;
   }
 
   /// 內容欄位的 key（敏感、秘密願望解鎖前不可外洩給伴侶）
