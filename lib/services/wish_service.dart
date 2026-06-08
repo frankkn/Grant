@@ -200,9 +200,14 @@ class WishService {
       if (wish.status != WishStatus.approved) {
         throw Exception('只能標記已通過的願望為已實現');
       }
+      // 取消已實現時一併清掉舊感謝話，避免殘留的 ✨ 文字繼續顯示；
+      // 標記已實現時，有帶感謝話才寫入。
+      final Object? noteUpdate = isFulfilled
+          ? fulfillmentNote
+          : FieldValue.delete();
       tx.update(ref, {
         'isFulfilled': isFulfilled,
-        if (fulfillmentNote != null) 'fulfillmentNote': fulfillmentNote,
+        if (noteUpdate != null) 'fulfillmentNote': noteUpdate,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     });
