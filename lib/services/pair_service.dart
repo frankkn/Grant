@@ -126,12 +126,18 @@ class PairService {
   }
 
   /// 解除配對
+  ///
+  /// 不用 atomic batch：若對方早已和別人重新配對，其 partnerId 已不指向我，
+  /// rules 會擋下「清空對方 partnerId」這筆跨使用者寫入，整個 batch 便會失敗，
+  /// 害我連自己這邊都解除不了。改為：先清掉自己（必定有權限），再「盡力」清對方。
   Future<void> unpair(String partnerId) async {
     final myUid = _auth.currentUser!.uid;
-    final batch = _db.batch();
-    batch.update(_db.collection('users').doc(myUid), {'partnerId': null});
-    batch.update(_db.collection('users').doc(partnerId), {'partnerId': null});
-    await batch.commit();
+    await _db.collection('users').doc(myUid).update({'partnerId': null});
+    try {
+      await _db.collection('users').doc(partnerId).update({'partnerId': null});
+    } catch (_) {
+      // 對方狀態已改變（例如已重新配對），自己這邊解除即可，不視為失敗。
+    }
   }
 
   /// 帶 Firebase ID token 呼叫後端；非 2xx 時以後端回傳的 error 訊息丟出例外。
