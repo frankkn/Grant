@@ -165,17 +165,9 @@ class HomeScreen extends StatelessWidget {
                                     onPressed: () => _openWish(context, user.partnerId!, 1),
                                   ),
                                   const SizedBox(height: 10),
-                                  StreamBuilder<List<WishModel>>(
-                                    stream: WishService()
-                                        .watchIncomingWishes(user.partnerId!),
-                                    builder: (context, wishSnap) {
-                                      return _NotebookButton(
-                                        icon: Icons.fact_check_outlined,
-                                        label: '審核願望',
-                                        badgeCount: _reviewableCount(wishSnap.data),
-                                        onPressed: () => _openWish(context, user.partnerId!, 2),
-                                      );
-                                    },
+                                  _ReviewBadgeButton(
+                                    partnerId: user.partnerId!,
+                                    onPressed: () => _openWish(context, user.partnerId!, 2),
                                   ),
                                   const SizedBox(height: 10),
                                   _NotebookButton(
@@ -227,18 +219,50 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// 可實際審核的待審願望數（排除尚未解鎖的秘密許願）
-  static int _reviewableCount(List<WishModel>? wishes) {
-    if (wishes == null) return 0;
-    return wishes.where((w) => !w.isLockedSecret).length;
-  }
-
   void _openWish(BuildContext context, String partnerId, int index) {
     MusicService().startOnWeb();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => WishScreen(partnerId: partnerId, initialIndex: index),
+      ),
+    );
+  }
+}
+
+/// 「審核願望」按鈕＋未審核數徽章。
+/// 獨立成 StatefulWidget 並在 initState 快取 stream，避免首頁外層（監聽使用者
+/// 文件）每次 rebuild 都重建 watchIncomingWishes —— 那會造成重複 Firestore
+/// 讀取（含每筆秘密願望的 private/detail overlay）與紅點閃爍。
+class _ReviewBadgeButton extends StatefulWidget {
+  final String partnerId;
+  final VoidCallback onPressed;
+  const _ReviewBadgeButton({required this.partnerId, required this.onPressed});
+
+  @override
+  State<_ReviewBadgeButton> createState() => _ReviewBadgeButtonState();
+}
+
+class _ReviewBadgeButtonState extends State<_ReviewBadgeButton> {
+  // 建立一次後快取，避免每次 build 重新訂閱 Firestore。
+  late final Stream<List<WishModel>> _stream =
+      WishService().watchIncomingWishes(widget.partnerId);
+
+  /// 可實際審核的待審願望數（排除尚未解鎖的秘密許願）
+  static int _reviewableCount(List<WishModel>? wishes) {
+    if (wishes == null) return 0;
+    return wishes.where((w) => !w.isLockedSecret).length;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<WishModel>>(
+      stream: _stream,
+      builder: (context, wishSnap) => _NotebookButton(
+        icon: Icons.fact_check_outlined,
+        label: '審核願望',
+        badgeCount: _reviewableCount(wishSnap.data),
+        onPressed: widget.onPressed,
       ),
     );
   }
