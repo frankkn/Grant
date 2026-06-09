@@ -173,32 +173,4 @@ class WishModel {
     createdAt: createdAt,
     updatedAt: updatedAt,
   );
-
-  WishModel copyWith({
-    WishStatus? status,
-    String? reviewNote,
-    String? category,
-    String? negotiationNote,
-    bool? isFulfilled,
-    String? fulfillmentNote,
-  }) => WishModel(
-    id: id,
-    requesterId: requesterId,
-    partnerId: partnerId,
-    title: title,
-    price: price,
-    heartRating: heartRating,
-    productUrl: productUrl,
-    description: description,
-    reason: reason,
-    scheduledAt: scheduledAt,
-    status: status ?? this.status,
-    reviewNote: reviewNote ?? this.reviewNote,
-    category: category ?? this.category,
-    negotiationNote: negotiationNote ?? this.negotiationNote,
-    isFulfilled: isFulfilled ?? this.isFulfilled,
-    fulfillmentNote: fulfillmentNote ?? this.fulfillmentNote,
-    createdAt: createdAt,
-    updatedAt: DateTime.now(),
-  );
 }
