@@ -15,18 +15,27 @@ import 'settings_screen.dart';
 import 'whisper_screen.dart';
 import 'wish_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final AuthService _auth = AuthService();
+  // 同一條 user stream 供 AppBar 與 body 共用，建立一次後快取，
+  // 避免對使用者文件開兩個 listener，也避免 rebuild 時重訂閱。
+  late final Stream<UserModel?> _userStream = _auth.watchCurrentUser();
+
+  @override
   Widget build(BuildContext context) {
-    final auth = AuthService();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Grant'),
         actions: [
           StreamBuilder<UserModel?>(
-            stream: auth.watchCurrentUser(),
+            stream: _userStream,
             builder: (context, snap) => IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () => Navigator.push(
@@ -40,7 +49,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await auth.logout();
+              await _auth.logout();
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
@@ -52,7 +61,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<UserModel?>(
-        stream: auth.watchCurrentUser(),
+        stream: _userStream,
         builder: (context, snap) {
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -92,7 +101,7 @@ class HomeScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             user.partnerId != null
                                 ? FutureBuilder<UserModel?>(
-                                    future: auth.fetchUser(user.partnerId!),
+                                    future: _auth.fetchUser(user.partnerId!),
                                     builder: (context, partnerSnap) {
                                       final name = partnerSnap.data?.displayName;
                                       return Text(
