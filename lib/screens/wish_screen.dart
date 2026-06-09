@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/auth_service.dart';
 import '../services/wish_service.dart';
+import '../widgets/unlock_ticker.dart';
 import 'edit_wish_screen.dart';
 import 'wish_detail_screen.dart';
 
@@ -182,16 +183,24 @@ class _WishScreenState extends State<WishScreen> {
                 child: StreamBuilder<List<WishModel>>(
                   stream: _incomingWishesStream,
                   builder: (context, snap) {
-                    final count = _actionableCount(snap.data);
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text('審核許願'),
-                        if (count > 0) ...[
-                          const SizedBox(width: 6),
-                          _countChip(count),
-                        ],
-                      ],
+                    final wishes = snap.data;
+                    return UnlockTicker(
+                      unlockTimes: (wishes ?? [])
+                          .where((w) => w.isSecret)
+                          .map((w) => w.scheduledAt),
+                      builder: (context) {
+                        final count = _actionableCount(wishes);
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('審核許願'),
+                            if (count > 0) ...[
+                              const SizedBox(width: 6),
+                              _countChip(count),
+                            ],
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -567,34 +576,46 @@ class _WishScreenState extends State<WishScreen> {
                   child: Center(child: Text('載入中...')),
                 );
               }
-              final pending = _reviewFilter == null
-                  ? snap.data!
-                  : snap.data!.where((w) => w.category == _reviewFilter).toList();
-              if (pending.isEmpty) {
-                return const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('目前沒有待審核的許願', style: TextStyle(color: Colors.grey)),
-                  ),
-                );
-              }
-              return SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) {
-                    final w = pending[i];
-                    if (w.isLockedSecret) {
-                      return FutureBuilder(
-                        future: AuthService().fetchUser(w.requesterId),
-                        builder: (_, snap) => _LockedSecretCard(
-                          wish: w,
-                          requesterName: snap.data?.displayName,
-                        ),
-                      );
-                    }
-                    return _WishReviewCard(wish: w, wishService: _wishService);
-                  },
-                  childCount: pending.length,
-                ),
+              // 到解鎖時刻自動 rebuild：讓鎖定卡片即時翻成可審核卡片。
+              return UnlockTicker(
+                unlockTimes: snap.data!
+                    .where((w) => w.isSecret)
+                    .map((w) => w.scheduledAt),
+                builder: (context) {
+                  final pending = _reviewFilter == null
+                      ? snap.data!
+                      : snap.data!
+                          .where((w) => w.category == _reviewFilter)
+                          .toList();
+                  if (pending.isEmpty) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Text('目前沒有待審核的許願',
+                            style: TextStyle(color: Colors.grey)),
+                      ),
+                    );
+                  }
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (_, i) {
+                        final w = pending[i];
+                        if (w.isLockedSecret) {
+                          return FutureBuilder(
+                            future: AuthService().fetchUser(w.requesterId),
+                            builder: (_, snap) => _LockedSecretCard(
+                              wish: w,
+                              requesterName: snap.data?.displayName,
+                            ),
+                          );
+                        }
+                        return _WishReviewCard(
+                            wish: w, wishService: _wishService);
+                      },
+                      childCount: pending.length,
+                    ),
+                  );
+                },
               );
             },
           ),

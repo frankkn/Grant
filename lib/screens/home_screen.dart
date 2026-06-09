@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/music_service.dart';
 import '../services/pair_service.dart';
 import '../services/wish_service.dart';
+import '../widgets/unlock_ticker.dart';
 import 'anniversary_screen.dart';
 import 'login_screen.dart';
 import 'memory_wall_screen.dart';
@@ -267,12 +268,20 @@ class _ReviewBadgeButtonState extends State<_ReviewBadgeButton> {
   Widget build(BuildContext context) {
     return StreamBuilder<List<WishModel>>(
       stream: _stream,
-      builder: (context, wishSnap) => _NotebookButton(
-        icon: Icons.fact_check_outlined,
-        label: '審核願望',
-        badgeCount: _reviewableCount(wishSnap.data),
-        onPressed: widget.onPressed,
-      ),
+      builder: (context, wishSnap) {
+        final wishes = wishSnap.data;
+        return UnlockTicker(
+          unlockTimes: (wishes ?? [])
+              .where((w) => w.isSecret)
+              .map((w) => w.scheduledAt),
+          builder: (context) => _NotebookButton(
+            icon: Icons.fact_check_outlined,
+            label: '審核願望',
+            badgeCount: _reviewableCount(wishes),
+            onPressed: widget.onPressed,
+          ),
+        );
+      },
     );
   }
 }
@@ -463,27 +472,33 @@ class _SecretUnlockBannerState extends State<_SecretUnlockBanner> {
       builder: (context, snap) {
         final secrets = (snap.data ?? []).where((w) => w.isSecret).toList();
         if (secrets.isEmpty) return const SizedBox.shrink();
-        // 已解鎖的優先提示，否則顯示最接近解鎖的那一個
-        final unlocked = secrets.where((w) => !w.isLockedSecret).toList();
-        if (unlocked.isNotEmpty) {
-          return _InfoBanner(
-            icon: Icons.lock_open,
-            color: Colors.deepPurple,
-            text: '有 ${unlocked.length} 個神秘心願已解鎖，快去看看 🎁',
-            onTap: () => _openReview(context),
-          );
-        }
-        final soonest = secrets.reduce(
-            (a, b) => a.scheduledAt.isBefore(b.scheduledAt) ? a : b);
-        // 無條件進位：剩 1.9 天應顯示「2 天」而非截斷成「1 天」。
-        // 此分支只在仍有未解鎖秘密時出現（scheduledAt > now），故至少為 1。
-        final minutes =
-            soonest.scheduledAt.difference(DateTime.now()).inMinutes;
-        final days = (minutes / (60 * 24)).ceil();
-        return _InfoBanner(
-          icon: Icons.lock_clock,
-          color: Colors.deepPurple,
-          text: '神秘心願將在 ${days < 1 ? 1 : days} 天後解鎖 🎁',
+        // 到解鎖時刻自動 rebuild：讓「N 天後解鎖」即時翻成「已解鎖」。
+        return UnlockTicker(
+          unlockTimes: secrets.map((w) => w.scheduledAt),
+          builder: (context) {
+            // 已解鎖的優先提示，否則顯示最接近解鎖的那一個
+            final unlocked = secrets.where((w) => !w.isLockedSecret).toList();
+            if (unlocked.isNotEmpty) {
+              return _InfoBanner(
+                icon: Icons.lock_open,
+                color: Colors.deepPurple,
+                text: '有 ${unlocked.length} 個神秘心願已解鎖，快去看看 🎁',
+                onTap: () => _openReview(context),
+              );
+            }
+            final soonest = secrets.reduce(
+                (a, b) => a.scheduledAt.isBefore(b.scheduledAt) ? a : b);
+            // 無條件進位：剩 1.9 天應顯示「2 天」而非截斷成「1 天」。
+            // 此分支只在仍有未解鎖秘密時出現（scheduledAt > now），故至少為 1。
+            final minutes =
+                soonest.scheduledAt.difference(DateTime.now()).inMinutes;
+            final days = (minutes / (60 * 24)).ceil();
+            return _InfoBanner(
+              icon: Icons.lock_clock,
+              color: Colors.deepPurple,
+              text: '神秘心願將在 ${days < 1 ? 1 : days} 天後解鎖 🎁',
+            );
+          },
         );
       },
     );
