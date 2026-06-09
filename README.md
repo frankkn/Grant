@@ -31,7 +31,7 @@
 <p align="center">
   <img src="docs/screenshots/home.png" width="32%" alt="首頁" />
   &nbsp;&nbsp;
-  <img src="docs/screenshots/wish.png" width="32%" alt="許願頁" />
+  <img src="docs/screenshots/make_a_wish.png" width="32%" alt="許願頁" />
 </p>
 
 ---
