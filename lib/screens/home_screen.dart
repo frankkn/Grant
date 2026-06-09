@@ -155,8 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           )
                         : Transform.translate(
-                            // 往左移對齊筆記本；y 置中 ≈ preview 垂直位置 50%
-                            offset: const Offset(-15, 0),
+                            // 往左移對齊筆記本；y 為從正中央的微調（單位 px，正值往下、負值往上）
+                            offset: const Offset(-15, -20),
                             child: SizedBox(
                               width: 150,
                               child: SingleChildScrollView(
