@@ -4,6 +4,7 @@ import '../models/user_model.dart';
 import '../services/pair_service.dart';
 import '../services/auth_service.dart';
 import '../services/music_service.dart';
+import '../services/notification_service.dart';
 import '../services/theme_service.dart';
 import 'anniversary_screen.dart';
 
@@ -31,6 +32,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _changeVolume(int delta) async {
     await _music.setVolume(_music.volume + delta);
     setState(() {});
+  }
+
+  Future<void> _enableNotifications() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await NotificationService().requestPermissionAndRegister();
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(
+      content: Text(ok
+          ? '已開啟推播通知 🔔'
+          : '尚未取得通知權限，請到系統／瀏覽器設定允許後再試'),
+    ));
   }
 
   @override
@@ -101,6 +113,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               onTap: () => _showThemePicker(context, mode),
             ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined,
+                color: Colors.pink),
+            title: const Text('推播通知'),
+            subtitle: const Text('點一下開啟，收得到對方的悄悄話與許願通知'),
+            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+            onTap: _enableNotifications,
           ),
           const Divider(),
           if (widget.partnerId != null)

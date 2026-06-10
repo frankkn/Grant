@@ -25,6 +25,13 @@ class NotificationService {
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
+  /// Web Push 用的 VAPID 公鑰（可公開，非機密；會隨網頁一起送到瀏覽器）。
+  /// 取得方式：Firebase Console → ⚙ 專案設定 → Cloud Messaging →
+  /// 「網路推送憑證 (Web Push certificates)」→ 產生金鑰組 → 複製貼到這裡。
+  /// 留著預設值時，web 取不到推播 token（網頁/PWA 將收不到通知）。
+  static const String _webVapidKey =
+      'BPMqQD6T5PtTvw1NTGFEI0VvSN2LiorElJySBMxuu8CV-549eE3dB1TfQHWOwEfodd0ouZsLFXKhWoFwiMnt-hs';
+
   Future<void> initialize() async {
     // Web 不支援本地通知，跳過初始化
     if (!kIsWeb) {
@@ -61,22 +68,38 @@ class NotificationService {
       });
     }
 
-    // 請求推播權限
-    final settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      await _saveToken();
-    }
+    // 啟動時嘗試請求權限並註冊 token。iOS PWA 上瀏覽器會忽略「非使用者手勢」
+    // 觸發的權限請求，故另提供 [requestPermissionAndRegister] 供 UI 按鈕呼叫。
+    await requestPermissionAndRegister();
 
     _messaging.onTokenRefresh.listen(_saveTokenString);
   }
 
+  /// 請求通知權限，取得授權後註冊推播 token；回傳是否取得授權。
+  /// 可由 UI 的使用者手勢（例如設定頁的「開啟通知」）直接呼叫——
+  /// iOS PWA 僅在手勢觸發時才會跳出系統權限要求。
+  Future<bool> requestPermissionAndRegister() async {
+    try {
+      final settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      final status = settings.authorizationStatus;
+      final granted = status == AuthorizationStatus.authorized ||
+          status == AuthorizationStatus.provisional;
+      if (granted) await _saveToken();
+      return granted;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _saveToken() async {
-    final token = await _messaging.getToken();
+    // Web 需帶 VAPID 公鑰才取得得到推播 token；原生平台不需要。
+    final token = kIsWeb
+        ? await _messaging.getToken(vapidKey: _webVapidKey)
+        : await _messaging.getToken();
     if (token != null) await _saveTokenString(token);
   }
 
