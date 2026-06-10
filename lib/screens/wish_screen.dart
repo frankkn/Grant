@@ -495,7 +495,9 @@ class _WishScreenState extends State<WishScreen> {
             children: [
               _statusChip(w.status),
               const SizedBox(width: 4),
-              if (w.status == WishStatus.pending)
+              // 編輯與刪除都只在「待審核」開放——與 service 及 firestore 規則
+              // 一致（只有 pending 能改/刪）。已通過/駁回不顯示這兩顆鈕。
+              if (w.status == WishStatus.pending) ...[
                 IconButton(
                   icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
                   onPressed: () => Navigator.push(
@@ -503,10 +505,11 @@ class _WishScreenState extends State<WishScreen> {
                     MaterialPageRoute(builder: (_) => EditWishScreen(wish: w)),
                   ),
                 ),
-              IconButton(
-                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                onPressed: () => _confirmDelete(context, w),
-              ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                  onPressed: () => _confirmDelete(w),
+                ),
+              ],
               if (w.status == WishStatus.approved) _fulfilledCheckbox(w),
             ],
           ),
@@ -519,7 +522,7 @@ class _WishScreenState extends State<WishScreen> {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, WishModel wish) async {
+  Future<void> _confirmDelete(WishModel wish) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -542,7 +545,15 @@ class _WishScreenState extends State<WishScreen> {
       ),
     );
     if (confirmed == true) {
-      await _wishService.deleteWish(wish.id);
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await _wishService.deleteWish(wish.id);
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(SnackBar(content: Text('刪除失敗：$e')));
+        }
+      }
     }
   }
 
