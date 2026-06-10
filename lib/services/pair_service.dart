@@ -40,25 +40,28 @@ class PairService {
 
   // ── 紀念日 ──────────────────────────────────────────────
 
+  /// 讀出 events 原始 map 陣列。直接操作 raw map（不經 AnniversaryEvent.fromMap），
+  /// 這樣即使陣列裡有單一筆髒資料，也不會在解析時整批拋錯、害新增／刪除失效。
+  List<Map<String, dynamic>> _rawEvents(DocumentSnapshot<Map<String, dynamic>> snap) =>
+      ((snap.data()?['events'] as List<dynamic>?) ?? [])
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
   /// 新增或更新一個紀念日（依 id 比對，read-modify-write 整個陣列）
   Future<void> saveEvent(String partnerId, AnniversaryEvent event) async {
     await ensurePair(partnerId);
     final ref = _pairRef(partnerId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
-      final raw = (snap.data()?['events'] as List<dynamic>?) ?? [];
-      final events = raw
-          .map((e) => AnniversaryEvent.fromMap(Map<String, dynamic>.from(e)))
-          .toList();
-      final idx = events.indexWhere((e) => e.id == event.id);
+      final events = _rawEvents(snap);
+      final map = event.toMap();
+      final idx = events.indexWhere((e) => e['id'] == event.id);
       if (idx >= 0) {
-        events[idx] = event;
+        events[idx] = map;
       } else {
-        events.add(event);
+        events.add(map);
       }
-      tx.set(ref, {
-        'events': events.map((e) => e.toMap()).toList(),
-      }, SetOptions(merge: true));
+      tx.set(ref, {'events': events}, SetOptions(merge: true));
     });
   }
 
@@ -67,14 +70,8 @@ class PairService {
     final ref = _pairRef(partnerId);
     await _db.runTransaction((tx) async {
       final snap = await tx.get(ref);
-      final raw = (snap.data()?['events'] as List<dynamic>?) ?? [];
-      final events = raw
-          .map((e) => AnniversaryEvent.fromMap(Map<String, dynamic>.from(e)))
-          .where((e) => e.id != eventId)
-          .toList();
-      tx.set(ref, {
-        'events': events.map((e) => e.toMap()).toList(),
-      }, SetOptions(merge: true));
+      final events = _rawEvents(snap)..removeWhere((e) => e['id'] == eventId);
+      tx.set(ref, {'events': events}, SetOptions(merge: true));
     });
   }
 
