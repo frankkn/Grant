@@ -7,6 +7,26 @@ import '../utils/formatters.dart';
 
 const _moods = ['❤️', '😊', '🥰', '😢', '😡', '🤔', '😴', '🎉'];
 
+// 心情 emoji → 內建小圖。Firestore 仍存 emoji 字串（與 Android 原生、既有資料
+// 相容），這些圖只用於「顯示」，避免 Flutter Web 字型 emoji 首次載入時變灰階。
+const _moodAssets = {
+  '❤️': 'assets/emoji/heart.png',
+  '😊': 'assets/emoji/smile.png',
+  '🥰': 'assets/emoji/love.png',
+  '😢': 'assets/emoji/cry.png',
+  '😡': 'assets/emoji/angry.png',
+  '🤔': 'assets/emoji/think.png',
+  '😴': 'assets/emoji/sleep.png',
+  '🎉': 'assets/emoji/party.png',
+};
+
+/// 以內建小圖渲染心情 emoji；未知字串（理論上不會發生）退回純文字。
+Widget _moodEmoji(String mood, double size) {
+  final asset = _moodAssets[mood];
+  if (asset == null) return Text(mood, style: TextStyle(fontSize: size));
+  return Image.asset(asset, width: size, height: size);
+}
+
 class WhisperScreen extends StatefulWidget {
   final String partnerId;
   const WhisperScreen({super.key, required this.partnerId});
@@ -150,7 +170,7 @@ class _Composer extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: ChoiceChip(
-                      label: Text(m, style: const TextStyle(fontSize: 16)),
+                      label: _moodEmoji(m, 20),
                       selected: selected,
                       selectedColor: Colors.teal.shade100,
                       onSelected: (_) => onMoodSelected(m),
@@ -210,9 +230,6 @@ class _PostBubble extends StatelessWidget {
             : Colors.teal.shade100)
         : scheme.surfaceContainerHighest;
     final time = formatMdHm(post.createdAt);
-    final body = post.mood.isEmpty
-        ? post.text
-        : (post.text.isEmpty ? post.mood : '${post.mood}  ${post.text}');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -230,7 +247,21 @@ class _PostBubble extends StatelessWidget {
               color: bubbleColor,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Text(body, style: const TextStyle(fontSize: 15)),
+            child: Text.rich(
+              TextSpan(children: [
+                if (post.mood.isNotEmpty)
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: Padding(
+                      padding:
+                          EdgeInsets.only(right: post.text.isEmpty ? 0 : 6),
+                      child: _moodEmoji(post.mood, 18),
+                    ),
+                  ),
+                if (post.text.isNotEmpty) TextSpan(text: post.text),
+              ]),
+              style: const TextStyle(fontSize: 15),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.only(top: 2),
