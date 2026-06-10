@@ -62,10 +62,18 @@ class AnniversaryEvent {
       id: data['id'] as String,
       title: data['title'] as String,
       date: (data['date'] as Timestamp).toDate(),
-      type: AnniversaryType.values.byName(
-        (data['type'] as String?) ?? 'custom',
-      ),
+      type: _typeFromName(data['type']),
     );
+  }
+
+  /// 容錯解析 type：遇到未知 / 缺漏的字串時退回 custom，
+  /// 避免單一筆髒資料讓整個 events 陣列解析拋錯、紀念日清單掛掉。
+  static AnniversaryType _typeFromName(Object? value) {
+    if (value is String) {
+      final match = AnniversaryType.values.asNameMap()[value];
+      if (match != null) return match;
+    }
+    return AnniversaryType.custom;
   }
 
   Map<String, dynamic> toMap() => {
