@@ -234,14 +234,35 @@ class _PartnerSectionsState extends State<_PartnerSections> {
       ...topAnniv.map(
           (e) => _AnniversaryBanner(event: e, partnerId: widget.partnerId)),
     ];
+    final bottomItems = <Widget>[
+      if (hasSecret && !secretInTop)
+        _SecretUnlockBanner(secrets: secrets, partnerId: widget.partnerId),
+      _LatestWhisperBanner(partnerId: widget.partnerId),
+    ];
 
-    return Column(
+    // 用 Stack 把按鈕「固定錨」在區域中央（對準背景筆記本），banner 則釘在頂端／
+    // 底端各自疊放。按鈕位置不再隨 banner 數量或非同步載入而上下跳動。
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        ...topItems,
-        Expanded(child: Center(child: _notebook(context, wishes, secrets))),
-        if (hasSecret && !secretInTop)
-          _SecretUnlockBanner(secrets: secrets, partnerId: widget.partnerId),
-        _LatestWhisperBanner(partnerId: widget.partnerId),
+        Align(
+          alignment: Alignment.center,
+          child: _notebook(context, wishes, secrets),
+        ),
+        // 上方資訊：釘在頂端，往下疊（最多 3 則）
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 0,
+          child: Column(mainAxisSize: MainAxisSize.min, children: topItems),
+        ),
+        // 下方資訊：釘在底端（神秘心願溢位 + 悄悄話）
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Column(mainAxisSize: MainAxisSize.min, children: bottomItems),
+        ),
       ],
     );
   }
