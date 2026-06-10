@@ -39,6 +39,12 @@ class WishService {
   Future<List<WishModel>> _overlayList(List<WishModel> list) =>
       Future.wait(list.map(_overlayDetail));
 
+  /// 推播內文：審核 / 協商相關通知會從主文件重讀 WishModel，而秘密願望的
+  /// title 不存在主文件（在 private/detail），會是空字串。這裡對秘密願望
+  /// 改用不洩漏內容的遮蔽文字，避免通知內文空白。
+  static String _notifyBody(WishModel wish) =>
+      wish.isSecret ? '🔒 你的秘密心願' : wish.title;
+
   /// 送出許願
   Future<void> createWish({
     required String partnerId,
@@ -367,7 +373,7 @@ class WishService {
       await NotificationService().sendNotification(
         toUid: wish!.requesterId,
         title: approved ? '✅ 願望通過了！' : '🥲 願望被婉拒了',
-        body: wish!.title,
+        body: _notifyBody(wish!),
       );
     }
   }
@@ -395,7 +401,7 @@ class WishService {
       await NotificationService().sendNotification(
         toUid: wish!.requesterId,
         title: '💬 對方想和你商量一下',
-        body: wish!.title,
+        body: _notifyBody(wish!),
       );
     }
   }
@@ -419,7 +425,7 @@ class WishService {
       await NotificationService().sendNotification(
         toUid: wish!.partnerId,
         title: '🤝 對方接受了你的提案',
-        body: wish!.title,
+        body: _notifyBody(wish!),
       );
     }
   }
@@ -443,7 +449,7 @@ class WishService {
       await NotificationService().sendNotification(
         toUid: wish!.partnerId,
         title: '🥲 對方婉拒了這次的提案',
-        body: wish!.title,
+        body: _notifyBody(wish!),
       );
     }
   }
