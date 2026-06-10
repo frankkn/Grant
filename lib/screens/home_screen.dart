@@ -191,13 +191,18 @@ class _PartnerSections extends StatefulWidget {
 
 class _PartnerSectionsState extends State<_PartnerSections> {
   // 建立一次後快取，避免外層 user-stream 每次 rebuild 都重新訂閱 Firestore。
+  final _pairService = PairService();
   late final Stream<PairModel?> _pairStream =
-      PairService().watchPair(widget.partnerId);
+      _pairService.watchPair(widget.partnerId);
   late final Stream<List<WishModel>> _wishesStream =
       WishService().watchIncomingWishes(widget.partnerId);
+  late final Stream<List<PostModel>> _postsStream =
+      _pairService.watchPosts(widget.partnerId);
 
-  /// 首頁上方資訊容器最多顯示幾則
-  static const _maxTop = 3;
+  /// 首頁上方最多顯示幾個紀念日（設定數量不限，只是首頁顯示上限）
+  static const _maxAnniversaries = 3;
+
+  String? get _myUid => AuthService().currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
@@ -207,37 +212,54 @@ class _PartnerSectionsState extends State<_PartnerSections> {
         return StreamBuilder<List<WishModel>>(
           stream: _wishesStream,
           builder: (context, wishSnap) {
-            final wishes = wishSnap.data ?? const <WishModel>[];
-            return _layout(context, pairSnap.data, wishes);
+            return StreamBuilder<List<PostModel>>(
+              stream: _postsStream,
+              builder: (context, postSnap) {
+                return _layout(
+                  context,
+                  pairSnap.data,
+                  wishSnap.data ?? const <WishModel>[],
+                  postSnap.data ?? const <PostModel>[],
+                );
+              },
+            );
           },
         );
       },
     );
   }
 
-  Widget _layout(BuildContext context, PairModel? pair, List<WishModel> wishes) {
-    // 紀念日：依「建立先後」新→舊排序（後設定的在上）。
+  Widget _layout(BuildContext context, PairModel? pair,
+      List<WishModel> wishes, List<PostModel> posts) {
+    // 紀念日：依「建立先後」新→舊排序（後設定的在上），首頁最多顯示 3 個。
     final anniversaries = [...(pair?.events ?? <AnniversaryEvent>[])]
       ..sort((a, b) => b.createdAtMicros.compareTo(a.createdAtMicros));
+    final shownAnniv = anniversaries.take(_maxAnniversaries).toList();
+    // 顯示中的紀念日不足 3 個才有空位容納提醒；滿 3 個提醒就掉到下方固定區。
+    final room = anniversaries.length < _maxAnniversaries;
+
     final secrets = wishes.where((w) => w.isSecret).toList();
     final hasSecret = secrets.isNotEmpty;
 
-    // 神秘心願視為「最新」：上方還有空位（紀念日 < 3）就放最頂端，
-    // 否則 3 格被紀念日佔滿，神秘心願往下擠到底部。
-    final secretInTop = hasSecret && anniversaries.length < _maxTop;
-    final topAnniv =
-        anniversaries.take(secretInTop ? _maxTop - 1 : _maxTop).toList();
+    final fromPartner = posts.where((p) => p.authorId != _myUid).toList();
+    final latestPost = fromPartner.isEmpty ? null : fromPartner.first;
 
+    Widget secretBanner() =>
+        _SecretUnlockBanner(secrets: secrets, partnerId: widget.partnerId);
+    Widget whisperBanner() =>
+        _WhisperBanner(post: latestPost!, partnerId: widget.partnerId);
+
+    // 上方群組（有空位時）：神秘心願（最上）→ 紀念日（新→舊）→ 悄悄話。
     final topItems = <Widget>[
-      if (secretInTop)
-        _SecretUnlockBanner(secrets: secrets, partnerId: widget.partnerId),
-      ...topAnniv.map(
+      if (hasSecret && room) secretBanner(),
+      ...shownAnniv.map(
           (e) => _AnniversaryBanner(event: e, partnerId: widget.partnerId)),
+      if (latestPost != null && room) whisperBanner(),
     ];
+    // 下方固定區（紀念日滿 3 個時，提醒掉到這裡；按鈕位置不動）。
     final bottomItems = <Widget>[
-      if (hasSecret && !secretInTop)
-        _SecretUnlockBanner(secrets: secrets, partnerId: widget.partnerId),
-      _LatestWhisperBanner(partnerId: widget.partnerId),
+      if (hasSecret && !room) secretBanner(),
+      if (latestPost != null && !room) whisperBanner(),
     ];
 
     // 用 Stack 把按鈕「固定錨」在區域中央（對準背景筆記本），banner 則釘在頂端／
@@ -249,14 +271,14 @@ class _PartnerSectionsState extends State<_PartnerSections> {
           alignment: Alignment.center,
           child: _notebook(context, wishes, secrets),
         ),
-        // 上方資訊：釘在頂端，往下疊（最多 3 則）
+        // 上方資訊：釘在頂端，往下疊
         Positioned(
           left: 0,
           right: 0,
           top: 0,
           child: Column(mainAxisSize: MainAxisSize.min, children: topItems),
         ),
-        // 下方資訊：釘在底端（神秘心願溢位 + 悄悄話）
+        // 下方固定區：釘在底端（紀念日滿 3 個時的溢位提醒）
         Positioned(
           left: 0,
           right: 0,
@@ -271,7 +293,7 @@ class _PartnerSectionsState extends State<_PartnerSections> {
       BuildContext context, List<WishModel> wishes, List<WishModel> secrets) {
     return Transform.translate(
       // 往左移對齊筆記本；y 為從正中央的微調（單位 px，正值往下、負值往上）
-      offset: const Offset(-15, -20),
+      offset: const Offset(-15, 30),
       child: SizedBox(
         width: 150,
         child: SingleChildScrollView(
@@ -566,45 +588,26 @@ class _SecretUnlockBanner extends StatelessWidget {
   }
 }
 
-/// 對方最新一則悄悄話（放在按鈕下方）
-class _LatestWhisperBanner extends StatefulWidget {
+/// 對方最新一則悄悄話。資料由 [_PartnerSections] 提供（依紀念日數量決定放上方或下方）。
+class _WhisperBanner extends StatelessWidget {
+  final PostModel post;
   final String partnerId;
-  const _LatestWhisperBanner({required this.partnerId});
-
-  @override
-  State<_LatestWhisperBanner> createState() => _LatestWhisperBannerState();
-}
-
-class _LatestWhisperBannerState extends State<_LatestWhisperBanner> {
-  // 建立一次後快取，避免外層 user-stream 每次 rebuild 都重新訂閱 Firestore。
-  late final Stream<List<PostModel>> _stream =
-      PairService().watchPosts(widget.partnerId);
+  const _WhisperBanner({required this.post, required this.partnerId});
 
   @override
   Widget build(BuildContext context) {
-    final myUid = AuthService().currentUser?.uid;
-    return StreamBuilder<List<PostModel>>(
-      stream: _stream,
-      builder: (context, snap) {
-        final posts = snap.data ?? [];
-        // 只在對方有發文時提示
-        final fromPartner = posts.where((p) => p.authorId != myUid).toList();
-        if (fromPartner.isEmpty) return const SizedBox.shrink();
-        final latest = fromPartner.first;
-        return _InfoBanner(
-          icon: Icons.chat_bubble,
-          color: Colors.teal,
-          leading: latest.mood.isEmpty ? null : moodEmoji(latest.mood, 16),
-          text: latest.text,
-          onTap: () {
-            MusicService().startOnWeb();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => WhisperScreen(partnerId: widget.partnerId),
-              ),
-            );
-          },
+    return _InfoBanner(
+      icon: Icons.chat_bubble,
+      color: Colors.teal,
+      leading: post.mood.isEmpty ? null : moodEmoji(post.mood, 16),
+      text: post.text,
+      onTap: () {
+        MusicService().startOnWeb();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => WhisperScreen(partnerId: partnerId),
+          ),
         );
       },
     );
