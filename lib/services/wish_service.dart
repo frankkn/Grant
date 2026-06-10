@@ -18,6 +18,13 @@ class WishService {
   DocumentReference<Map<String, dynamic>> _detailRef(String wishId) =>
       _db.collection('wishes').doc(wishId).collection('private').doc('detail');
 
+  /// private/detail 內容快取，key = wishId。內容只在編輯願望時變動，而編輯一定會
+  /// 更新主文件的 updatedAt，故以 updatedAt 當失效依據：同一 updatedAt 直接重用，
+  /// 不重打 Firestore。避免每次 snapshot 都把所有秘密願望的 detail 重讀一遍。
+  /// 註：WishService 多為各畫面各自 new，快取壽命僅及該畫面停留期間。
+  final Map<String, ({DateTime updatedAt, Map<String, dynamic> data})>
+      _detailCache = {};
+
   /// 把秘密願望的內容（存在 private/detail）覆蓋回 WishModel。
   /// - 公開願望：內容本就在主文件，原樣返回。
   /// - 秘密願望（我是許願者，或已解鎖）：讀子文件補上內容。
@@ -26,10 +33,17 @@ class WishService {
     if (!w.isSecret) return w;
     final mine = w.requesterId == _myUid;
     if (!mine && w.isLockedSecret) return w.redactedContent();
+    final cached = _detailCache[w.id];
+    if (cached != null && cached.updatedAt == w.updatedAt) {
+      return w.withContent(cached.data);
+    }
     try {
       final snap = await _detailRef(w.id).get();
       final data = snap.data();
-      if (data != null) return w.withContent(data);
+      if (data != null) {
+        _detailCache[w.id] = (updatedAt: w.updatedAt, data: data);
+        return w.withContent(data);
+      }
     } catch (_) {
       // 權限不足（理論上不會走到）或讀取失敗：保持主文件內容，不中斷串流
     }
