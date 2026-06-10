@@ -21,8 +21,32 @@ void main() async {
   runApp(const GrantApp());
 }
 
-class GrantApp extends StatelessWidget {
+class GrantApp extends StatefulWidget {
   const GrantApp({super.key});
+
+  @override
+  State<GrantApp> createState() => _GrantAppState();
+}
+
+class _GrantAppState extends State<GrantApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Flutter Web（CanvasKit）首次遇到 emoji 才會「非同步」下載彩色字型，且下載
+    // 完成後不會自動重繪已排版好的文字 → emoji 第一次顯示會是灰階，要返回再進入
+    // 該頁才恢復。這裡監聽字型載入事件，載入完成後重建一次，讓 emoji 即時補上色彩。
+    PaintingBinding.instance.systemFonts.addListener(_onSystemFontsChanged);
+  }
+
+  void _onSystemFontsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_onSystemFontsChanged);
+    super.dispose();
+  }
 
   ThemeData _theme(Brightness brightness) => ThemeData(
         colorScheme: ColorScheme.fromSeed(
