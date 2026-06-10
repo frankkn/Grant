@@ -293,7 +293,7 @@ class _PartnerSectionsState extends State<_PartnerSections> {
       BuildContext context, List<WishModel> wishes, List<WishModel> secrets) {
     return Transform.translate(
       // 往左移對齊筆記本；y 為從正中央的微調（單位 px，正值往下、負值往上）
-      offset: const Offset(-15, 30),
+      offset: const Offset(-15, 10),
       child: SizedBox(
         width: 150,
         child: SingleChildScrollView(
