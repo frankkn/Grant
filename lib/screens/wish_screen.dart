@@ -9,14 +9,23 @@ import 'wish_detail_screen.dart';
 class WishScreen extends StatefulWidget {
   final String partnerId;
   final int initialIndex;
-  const WishScreen({super.key, required this.partnerId, this.initialIndex = 0});
+
+  /// 測試可注入替身；正式環境留空，使用預設的 Firebase-backed 服務。
+  final WishService? wishService;
+
+  const WishScreen({
+    super.key,
+    required this.partnerId,
+    this.initialIndex = 0,
+    this.wishService,
+  });
 
   @override
   State<WishScreen> createState() => _WishScreenState();
 }
 
 class _WishScreenState extends State<WishScreen> {
-  final _wishService = WishService();
+  late final WishService _wishService = widget.wishService ?? WishService();
   final _titleCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _productUrlCtrl = TextEditingController();
@@ -169,22 +178,25 @@ class _WishScreenState extends State<WishScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      initialIndex: widget.initialIndex,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('許願'),
-          bottom: TabBar(
-            tabs: [
-              const Tab(text: '送出許願'),
-              const Tab(text: '我的許願'),
-              Tab(
-                child: StreamBuilder<List<WishModel>>(
-                  stream: _incomingWishesStream,
-                  builder: (context, snap) {
-                    final wishes = snap.data;
-                    return UnlockTicker(
+    // 待審核串流只在這裡訂閱一次，AppBar 紅點與「審核許願」分頁清單共用同一份
+    // 快照。先前兩處各自包一層 StreamBuilder 訂閱同一個 broadcast 串流，晚 build
+    // 的清單會錯過初始事件而永遠停在「載入中…」（即使沒有待審願望也不會收斂）。
+    return StreamBuilder<List<WishModel>>(
+      stream: _incomingWishesStream,
+      builder: (context, incomingSnap) {
+        final wishes = incomingSnap.data;
+        return DefaultTabController(
+          length: 3,
+          initialIndex: widget.initialIndex,
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('許願'),
+              bottom: TabBar(
+                tabs: [
+                  const Tab(text: '送出許願'),
+                  const Tab(text: '我的許願'),
+                  Tab(
+                    child: UnlockTicker(
                       unlockTimes: (wishes ?? [])
                           .where((w) => w.isSecret)
                           .map((w) => w.scheduledAt),
@@ -201,17 +213,21 @@ class _WishScreenState extends State<WishScreen> {
                           ],
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+            body: TabBarView(
+              children: [
+                _buildSendTab(),
+                _buildMyWishesTab(),
+                _buildReviewTab(incomingSnap),
+              ],
+            ),
           ),
-        ),
-        body: TabBarView(
-          children: [_buildSendTab(), _buildMyWishesTab(), _buildReviewTab()],
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -530,7 +546,64 @@ class _WishScreenState extends State<WishScreen> {
     }
   }
 
-  Widget _buildReviewTab() {
+  /// 「待審核」清單區塊。資料來自 build() 提升上去的單一 StreamBuilder，
+  /// 這裡只負責呈現，不再自行訂閱串流。
+  Widget _buildPendingSliver(AsyncSnapshot<List<WishModel>> snap) {
+    if (snap.hasError) {
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Text(
+            '錯誤：${snap.error}',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+    if (!snap.hasData) {
+      return const SliverToBoxAdapter(
+        child: Center(child: Text('載入中...')),
+      );
+    }
+    // 到解鎖時刻自動 rebuild：讓鎖定卡片即時翻成可審核卡片。
+    return UnlockTicker(
+      unlockTimes:
+          snap.data!.where((w) => w.isSecret).map((w) => w.scheduledAt),
+      builder: (context) {
+        final pending = _reviewFilter == null
+            ? snap.data!
+            : snap.data!.where((w) => w.category == _reviewFilter).toList();
+        if (pending.isEmpty) {
+          return const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('目前沒有待審核的許願',
+                  style: TextStyle(color: Colors.grey)),
+            ),
+          );
+        }
+        return SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (_, i) {
+              final w = pending[i];
+              if (w.isLockedSecret) {
+                return FutureBuilder(
+                  future: AuthService().fetchUser(w.requesterId),
+                  builder: (_, snap) => _LockedSecretCard(
+                    wish: w,
+                    requesterName: snap.data?.displayName,
+                  ),
+                );
+              }
+              return _WishReviewCard(wish: w, wishService: _wishService);
+            },
+            childCount: pending.length,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewTab(AsyncSnapshot<List<WishModel>> incomingSnap) {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
@@ -558,67 +631,7 @@ class _WishScreenState extends State<WishScreen> {
               ),
             ),
           ),
-          StreamBuilder<List<WishModel>>(
-            stream: _incomingWishesStream,
-            builder: (_, snap) {
-              if (snap.hasError) {
-                return SliverToBoxAdapter(
-                  child: Center(
-                    child: Text(
-                      '錯誤：${snap.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  ),
-                );
-              }
-              if (!snap.hasData) {
-                return const SliverToBoxAdapter(
-                  child: Center(child: Text('載入中...')),
-                );
-              }
-              // 到解鎖時刻自動 rebuild：讓鎖定卡片即時翻成可審核卡片。
-              return UnlockTicker(
-                unlockTimes: snap.data!
-                    .where((w) => w.isSecret)
-                    .map((w) => w.scheduledAt),
-                builder: (context) {
-                  final pending = _reviewFilter == null
-                      ? snap.data!
-                      : snap.data!
-                          .where((w) => w.category == _reviewFilter)
-                          .toList();
-                  if (pending.isEmpty) {
-                    return const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('目前沒有待審核的許願',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
-                    );
-                  }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (_, i) {
-                        final w = pending[i];
-                        if (w.isLockedSecret) {
-                          return FutureBuilder(
-                            future: AuthService().fetchUser(w.requesterId),
-                            builder: (_, snap) => _LockedSecretCard(
-                              wish: w,
-                              requesterName: snap.data?.displayName,
-                            ),
-                          );
-                        }
-                        return _WishReviewCard(
-                            wish: w, wishService: _wishService);
-                      },
-                      childCount: pending.length,
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+          _buildPendingSliver(incomingSnap),
         ],
 
         // 已審核（狀態篩選為 pending 時隱藏）
