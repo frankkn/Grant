@@ -52,6 +52,10 @@ class AnniversaryEvent {
   static bool _isLeapYear(int y) =>
       (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
 
+  /// 建立時間（微秒）。id 產生時用的就是 microsecondsSinceEpoch 字串，
+  /// 故可直接拿來排序「先後設定」——數字越大＝越晚設定＝越新。
+  int get createdAtMicros => int.tryParse(id) ?? 0;
+
   /// 距離下一次週年還有幾天（0 = 今天）
   int get daysUntilNext {
     final today = DateTime.now();
