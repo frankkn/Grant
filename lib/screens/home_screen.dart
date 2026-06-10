@@ -420,14 +420,23 @@ class _InfoBanner extends StatelessWidget {
 }
 
 /// 最近的一個紀念日倒數
-class _CountdownBanner extends StatelessWidget {
+class _CountdownBanner extends StatefulWidget {
   final String partnerId;
   const _CountdownBanner({required this.partnerId});
 
   @override
+  State<_CountdownBanner> createState() => _CountdownBannerState();
+}
+
+class _CountdownBannerState extends State<_CountdownBanner> {
+  // 建立一次後快取，避免外層 user-stream 每次 rebuild 都重新訂閱 Firestore。
+  late final Stream<PairModel?> _stream =
+      PairService().watchPair(widget.partnerId);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<PairModel?>(
-      stream: PairService().watchPair(partnerId),
+      stream: _stream,
       builder: (context, snap) {
         final events = snap.data?.events ?? [];
         if (events.isEmpty) return const SizedBox.shrink();
@@ -449,7 +458,7 @@ class _CountdownBanner extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AnniversaryScreen(partnerId: partnerId),
+              builder: (_) => AnniversaryScreen(partnerId: widget.partnerId),
             ),
           ),
         );
@@ -523,15 +532,24 @@ class _SecretUnlockBannerState extends State<_SecretUnlockBanner> {
 }
 
 /// 對方最新一則悄悄話
-class _LatestWhisperBanner extends StatelessWidget {
+class _LatestWhisperBanner extends StatefulWidget {
   final String partnerId;
   const _LatestWhisperBanner({required this.partnerId});
+
+  @override
+  State<_LatestWhisperBanner> createState() => _LatestWhisperBannerState();
+}
+
+class _LatestWhisperBannerState extends State<_LatestWhisperBanner> {
+  // 建立一次後快取，避免外層 user-stream 每次 rebuild 都重新訂閱 Firestore。
+  late final Stream<List<PostModel>> _stream =
+      PairService().watchPosts(widget.partnerId);
 
   @override
   Widget build(BuildContext context) {
     final myUid = AuthService().currentUser?.uid;
     return StreamBuilder<List<PostModel>>(
-      stream: PairService().watchPosts(partnerId),
+      stream: _stream,
       builder: (context, snap) {
         final posts = snap.data ?? [];
         // 只在對方有發文時提示
@@ -549,7 +567,7 @@ class _LatestWhisperBanner extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => WhisperScreen(partnerId: partnerId),
+                builder: (_) => WhisperScreen(partnerId: widget.partnerId),
               ),
             );
           },
