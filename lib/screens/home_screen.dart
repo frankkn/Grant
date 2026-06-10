@@ -14,6 +14,7 @@ import 'memory_wall_screen.dart';
 import 'pair_screen.dart';
 import 'settings_screen.dart';
 import 'whisper_screen.dart';
+import '../widgets/mood_emoji.dart';
 import 'wish_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -364,11 +365,13 @@ class _InfoBanner extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String text;
+  final Widget? leading;
   final VoidCallback? onTap;
   const _InfoBanner({
     required this.icon,
     required this.color,
     required this.text,
+    this.leading,
     this.onTap,
   });
 
@@ -392,6 +395,10 @@ class _InfoBanner extends StatelessWidget {
               children: [
                 Icon(icon, color: fg, size: 20),
                 const SizedBox(width: 10),
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: 6),
+                ],
                 Expanded(
                   child: Text(
                     text,
@@ -532,12 +539,11 @@ class _LatestWhisperBanner extends StatelessWidget {
             posts.where((p) => p.authorId != myUid).toList();
         if (fromPartner.isEmpty) return const SizedBox.shrink();
         final latest = fromPartner.first;
-        final preview =
-            latest.mood.isEmpty ? latest.text : '${latest.mood} ${latest.text}';
         return _InfoBanner(
           icon: Icons.chat_bubble,
           color: Colors.teal,
-          text: preview,
+          leading: latest.mood.isEmpty ? null : moodEmoji(latest.mood, 16),
+          text: latest.text,
           onTap: () {
             MusicService().startOnWeb();
             Navigator.push(

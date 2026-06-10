@@ -4,28 +4,9 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/pair_service.dart';
 import '../utils/formatters.dart';
+import '../widgets/mood_emoji.dart';
 
 const _moods = ['❤️', '😊', '🥰', '😢', '😡', '🤔', '😴', '🎉'];
-
-// 心情 emoji → 內建小圖。Firestore 仍存 emoji 字串（與 Android 原生、既有資料
-// 相容），這些圖只用於「顯示」，避免 Flutter Web 字型 emoji 首次載入時變灰階。
-const _moodAssets = {
-  '❤️': 'assets/emoji/heart.png',
-  '😊': 'assets/emoji/smile.png',
-  '🥰': 'assets/emoji/love.png',
-  '😢': 'assets/emoji/cry.png',
-  '😡': 'assets/emoji/angry.png',
-  '🤔': 'assets/emoji/think.png',
-  '😴': 'assets/emoji/sleep.png',
-  '🎉': 'assets/emoji/party.png',
-};
-
-/// 以內建小圖渲染心情 emoji；未知字串（理論上不會發生）退回純文字。
-Widget _moodEmoji(String mood, double size) {
-  final asset = _moodAssets[mood];
-  if (asset == null) return Text(mood, style: TextStyle(fontSize: size));
-  return Image.asset(asset, width: size, height: size);
-}
 
 class WhisperScreen extends StatefulWidget {
   final String partnerId;
@@ -170,7 +151,7 @@ class _Composer extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(right: 6),
                     child: ChoiceChip(
-                      label: _moodEmoji(m, 20),
+                      label: moodEmoji(m, 20),
                       selected: selected,
                       selectedColor: Colors.teal.shade100,
                       onSelected: (_) => onMoodSelected(m),
@@ -255,7 +236,7 @@ class _PostBubble extends StatelessWidget {
                     child: Padding(
                       padding:
                           EdgeInsets.only(right: post.text.isEmpty ? 0 : 6),
-                      child: _moodEmoji(post.mood, 18),
+                      child: moodEmoji(post.mood, 18),
                     ),
                   ),
                 if (post.text.isNotEmpty) TextSpan(text: post.text),
