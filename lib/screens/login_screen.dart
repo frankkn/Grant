@@ -22,6 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   Future<void> _submit() async {
+    if (_isRegister && _nameCtrl.text.trim().isEmpty) {
+      setState(() => _error = '請輸入暱稱');
+      return;
+    }
     setState(() { _error = null; _isLoading = true; });
     try {
       if (_isRegister) {
