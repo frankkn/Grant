@@ -47,7 +47,12 @@ class MusicService {
     await prefs.setInt(_volumeKey, _volume);
 
     try {
-      if (_player == null) return;
+      // Web 上播放器要等使用者互動後才建立；若尚未建立（_player == null）而此次
+      // 調高音量本身就是使用者手勢，直接在此啟動播放，不必等下一次導頁。
+      if (_player == null) {
+        if (_volume > 0) await startOnWeb();
+        return;
+      }
       if (_volume == 0) {
         await _player!.pause();
       } else {
