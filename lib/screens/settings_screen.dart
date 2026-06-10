@@ -34,17 +34,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {});
   }
 
-  Future<void> _enableNotifications() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final ok = await NotificationService().requestPermissionAndRegister();
-    if (!mounted) return;
-    messenger.showSnackBar(SnackBar(
-      content: Text(ok
-          ? '已開啟推播通知 🔔'
-          : '尚未取得通知權限，請到系統／瀏覽器設定允許後再試'),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,14 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(),
-          ListTile(
-            leading: const Icon(Icons.notifications_active_outlined,
-                color: Colors.pink),
-            title: const Text('推播通知'),
-            subtitle: const Text('點一下開啟，收得到對方的悄悄話與許願通知'),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            onTap: _enableNotifications,
-          ),
+          const _NotificationTile(),
           const Divider(),
           if (widget.partnerId != null)
             ListTile(
@@ -194,6 +176,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => _UnpairDialog(partnerId: widget.partnerId!),
+    );
+  }
+}
+
+/// 推播通知開關。顯示目前狀態（開／關／被系統封鎖），並讓使用者切換接收。
+/// 「關閉」是移除 token 停止接收，不會（也無法）收回系統權限。
+class _NotificationTile extends StatefulWidget {
+  const _NotificationTile();
+
+  @override
+  State<_NotificationTile> createState() => _NotificationTileState();
+}
+
+class _NotificationTileState extends State<_NotificationTile>
+    with WidgetsBindingObserver {
+  NotificationStatus? _status;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 回到前景時重新讀取：使用者可能剛去系統設定改了通知權限。
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  Future<void> _load() async {
+    final s = await NotificationService().currentStatus();
+    if (mounted) setState(() => _status = s);
+  }
+
+  Future<void> _toggle(bool on) async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (on) {
+        final granted = await NotificationService().enable();
+        if (!granted && mounted) {
+          messenger.showSnackBar(const SnackBar(
+            content: Text('尚未取得通知權限，請到系統／瀏覽器設定允許後再試'),
+          ));
+        }
+      } else {
+        await NotificationService().disable();
+      }
+    } finally {
+      await _load();
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _status;
+    final blocked = status == NotificationStatus.blocked;
+    final (String subtitle, Color subColor) = switch (status) {
+      null => ('檢查中…', Colors.grey),
+      NotificationStatus.enabled => ('已開啟，收得到對方的悄悄話與許願通知', Colors.grey),
+      NotificationStatus.disabled => ('已關閉，開啟開關即可開始接收', Colors.grey),
+      NotificationStatus.blocked =>
+        ('已被系統封鎖，請到裝置設定開啟本 App 的通知權限', Colors.orange),
+    };
+    return ListTile(
+      leading: const Icon(Icons.notifications_active_outlined, color: Colors.pink),
+      title: const Text('推播通知'),
+      subtitle: Text(subtitle, style: TextStyle(color: subColor, fontSize: 12)),
+      trailing: (_busy || status == null)
+          ? const SizedBox(
+              width: 24, height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : Switch(
+              value: status == NotificationStatus.enabled,
+              onChanged: blocked ? null : _toggle,
+            ),
     );
   }
 }
