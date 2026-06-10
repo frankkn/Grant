@@ -451,7 +451,7 @@ class _StatsBody extends StatelessWidget {
               _statusChip('已通過', statusCounts[WishStatus.approved] ?? 0,
                   Colors.green),
               _statusChip('協商中', statusCounts[WishStatus.negotiating] ?? 0,
-                  Colors.blue),
+                  Colors.deepOrange),
               _statusChip('已駁回', statusCounts[WishStatus.rejected] ?? 0,
                   Colors.red),
             ],
