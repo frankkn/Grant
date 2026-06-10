@@ -20,11 +20,13 @@ class AnniversaryEvent {
   });
 
   /// 自起始日到今天的天數（含當天為第 1 天）。僅對 together 有意義。
+  /// 起始日若被設成未來（尚未在一起）則回傳 0，避免顯示負數。
   int get daysTogether {
     final today = DateTime.now();
     final start = DateTime(date.year, date.month, date.day);
     final t = DateTime(today.year, today.month, today.day);
-    return t.difference(start).inDays + 1;
+    final days = t.difference(start).inDays + 1;
+    return days < 0 ? 0 : days;
   }
 
   /// 下一次週年（同月日，今年或明年）

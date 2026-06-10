@@ -54,8 +54,10 @@ class WishModel {
     final data = doc.data() as Map<String, dynamic>;
     return WishModel(
       id: doc.id,
-      requesterId: data['requesterId'] as String,
-      partnerId: data['partnerId'] as String,
+      // 容錯：缺漏時退回空字串而非 crash，避免單筆髒資料讓整條 stream
+      // 的 .map(fromDoc) 拋錯、整個清單掛掉（其餘欄位亦已做 null 容錯）。
+      requesterId: (data['requesterId'] as String?) ?? '',
+      partnerId: (data['partnerId'] as String?) ?? '',
       // 秘密願望的內容欄位不存在主文件、改放 private/detail 子文件（見 WishService），
       // 故這些欄位以預設值容錯；實際內容由 service 在可讀時 overlay 回來。
       title: (data['title'] as String?) ?? '',
