@@ -85,6 +85,13 @@ service cloud.firestore {
             && resource.data.status == 'approved'
             && request.resource.data.status == resource.data.status
             && onlyChanges(['isFulfilled', 'fulfillmentNote', 'updatedAt']) )
+          ||
+          // 5) 伴侶補寫 / 修改回覆（已通過後仍可編輯 reviewNote，但不可改 status）
+          //    用於審核當下忘了寫回覆的補救；只動 reviewNote，狀態須維持 approved
+          ( resource.data.partnerId == uid()
+            && resource.data.status == 'approved'
+            && request.resource.data.status == resource.data.status
+            && onlyChanges(['reviewNote', 'updatedAt']) )
         );
 
       // 刪除：只有許願者本人，且仍在 pending

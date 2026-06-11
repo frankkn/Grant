@@ -699,7 +699,22 @@ class _WishScreenState extends State<WishScreen> {
                         ),
                     ],
                   ),
-                  trailing: _statusChip(w.status),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _statusChip(w.status),
+                      // 已通過的願望可補寫 / 修改回覆（但無法改成駁回）。
+                      // 用於審核當下忘了寫回覆的補救。
+                      if (w.status == WishStatus.approved) ...[
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.edit, size: 20, color: Colors.grey),
+                          tooltip: '編輯回覆',
+                          onPressed: () => _editReviewNote(w),
+                        ),
+                      ],
+                    ],
+                  ),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -818,6 +833,70 @@ class _WishScreenState extends State<WishScreen> {
             SnackBar(content: Text('更新已實現狀態失敗：$e')),
           );
         }
+      }
+    }
+    noteCtrl.dispose();
+  }
+
+  /// 補寫 / 修改「已通過」願望的回覆（不改變狀態）。
+  Future<void> _editReviewNote(WishModel wish) async {
+    final noteCtrl = TextEditingController(text: wish.reviewNote ?? '');
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('編輯回覆'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '補上或修改想對許願者說的話',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: noteCtrl,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '想對另一半說的話...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Colors.pink, width: 2),
+                ),
+              ),
+              minLines: 2,
+              maxLines: 5,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.pink),
+            child: const Text('儲存', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (saved == true) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await _wishService.updateReviewNote(
+          wishId: wish.id,
+          reviewNote: noteCtrl.text.trim(),
+        );
+        messenger.showSnackBar(const SnackBar(content: Text('回覆已更新')));
+      } catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text('更新回覆失敗：$e')));
       }
     }
     noteCtrl.dispose();

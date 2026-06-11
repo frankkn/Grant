@@ -392,6 +392,34 @@ class WishService {
     }
   }
 
+  /// 補寫 / 修改回覆（已通過後仍可編輯給許願者的話，但不改變狀態）。
+  /// 用於審核當下忘了寫回覆的補救——只能對「已通過（approved）」的願望操作。
+  Future<void> updateReviewNote({
+    required String wishId,
+    required String reviewNote,
+  }) async {
+    final ref = _db.collection('wishes').doc(wishId);
+    WishModel? wish;
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) throw Exception('找不到此願望');
+      wish = WishModel.fromDoc(snap);
+      if (wish!.partnerId != _myUid) throw Exception('無權修改此回覆');
+      if (wish!.status != WishStatus.approved) throw Exception('只能修改已通過願望的回覆');
+      tx.update(ref, {
+        'reviewNote': reviewNote,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    });
+    if (wish != null) {
+      await NotificationService().sendNotification(
+        toUid: wish!.requesterId,
+        title: '💬 對方更新了願望的回覆',
+        body: _notifyBody(wish!),
+      );
+    }
+  }
+
   /// 提案修改（B 送出協商條件）
   Future<void> proposeNegotiation({
     required String wishId,
