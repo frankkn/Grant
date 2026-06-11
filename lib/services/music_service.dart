@@ -12,8 +12,11 @@ class MusicService {
   static const _audioFile = 'audio/Velvet Clipboard.mp3';
   int _volume = 70;
   bool _started = false;
+  // 靜音前的音量，供「開啟聲音」還原；使用者從未開過聲音時預設還原成 50。
+  int _lastVolume = 50;
 
   int get volume => _volume;
+  bool get isMuted => _volume == 0;
 
   Future<void> initialize() async {
     final prefs = await SharedPreferences.getInstance();
@@ -39,6 +42,17 @@ class MusicService {
       await _player!.setVolume(_volume / 100);
       await _player!.play(AssetSource(_audioFile));
     } catch (_) {}
+  }
+
+  /// 一鍵切換靜音 / 開啟聲音。靜音＝音量設 0 並記住原音量；
+  /// 開啟＝還原靜音前的音量（從未開過聲音則用預設 50）。
+  Future<void> toggleMute() async {
+    if (_volume > 0) {
+      _lastVolume = _volume;
+      await setVolume(0);
+    } else {
+      await setVolume(_lastVolume > 0 ? _lastVolume : 50);
+    }
   }
 
   Future<void> setVolume(int volume) async {

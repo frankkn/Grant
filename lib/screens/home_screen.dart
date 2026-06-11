@@ -26,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final AuthService _auth = AuthService();
+  final MusicService _music = MusicService();
   // 同一條 user stream 供 AppBar 與 body 共用，建立一次後快取，
   // 避免對使用者文件開兩個 listener，也避免 rebuild 時重訂閱。
   late final Stream<UserModel?> _userStream = _auth.watchCurrentUser();
@@ -36,6 +37,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Grant'),
         actions: [
+          // 一鍵靜音 / 開啟聲音；圖示依目前是否靜音切換。
+          IconButton(
+            icon: Icon(_music.isMuted ? Icons.volume_off : Icons.volume_up),
+            tooltip: _music.isMuted ? '開啟聲音' : '靜音',
+            onPressed: () async {
+              await _music.toggleMute();
+              if (mounted) setState(() {});
+            },
+          ),
           StreamBuilder<UserModel?>(
             stream: _userStream,
             builder: (context, snap) => IconButton(
