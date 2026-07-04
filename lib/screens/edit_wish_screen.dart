@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/wish_service.dart';
+import '../utils/formatters.dart';
 import 'wish_screen.dart' show WishTypeSelector;
 
 class EditWishScreen extends StatefulWidget {
@@ -70,11 +71,16 @@ class _EditWishScreenState extends State<EditWishScreen> {
   }
 
   Future<void> _pickDate() async {
+    // 用「日期」而非含時分秒的 now，避免同日午夜前後的邊界問題；
+    // initialDate 需 clamp 進範圍，否則過期願望（scheduledAt < 今天）會 assert crash。
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final last = today.add(const Duration(days: 365));
     final picked = await showDatePicker(
       context: context,
-      initialDate: _scheduledAt,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: clampDate(_scheduledAt, today, last),
+      firstDate: today,
+      lastDate: last,
     );
     if (picked != null) setState(() => _scheduledAt = picked);
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/wish_model.dart';
 import '../services/auth_service.dart';
 import '../services/wish_service.dart';
+import '../utils/formatters.dart';
 import '../widgets/unlock_ticker.dart';
 import 'edit_wish_screen.dart';
 import 'wish_detail_screen.dart';
@@ -157,11 +158,16 @@ class _WishScreenState extends State<WishScreen> {
   }
 
   Future<void> _pickDate() async {
+    // 同 EditWishScreen：initialDate 必須落在 firstDate..lastDate 內。
+    // 送出頁雖以「明天」起始，但使用者選了今天後跨日再開啟仍會越界，一併 clamp。
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final last = today.add(const Duration(days: 365));
     final picked = await showDatePicker(
       context: context,
-      initialDate: _scheduledAt,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: clampDate(_scheduledAt, today, last),
+      firstDate: today,
+      lastDate: last,
     );
     if (picked != null) setState(() => _scheduledAt = picked);
   }
