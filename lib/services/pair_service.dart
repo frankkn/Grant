@@ -24,8 +24,12 @@ class PairService {
 
   /// 確保配對共享文件存在（首次用到時自動建立，現有配對毋須遷移）
   Future<void> ensurePair(String partnerId) async {
+    final ref = _pairRef(partnerId);
+    // 文件已存在就直接返回：原本無條件 set+merge，每次呼叫（發悄悄話、
+    // 存紀念日）都會把 createdAt 重寫成新的 serverTimestamp。
+    if ((await ref.get()).exists) return;
     final members = [_myUid, partnerId]..sort();
-    await _pairRef(partnerId).set({
+    await ref.set({
       'members': members,
       'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
