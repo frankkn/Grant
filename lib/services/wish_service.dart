@@ -239,6 +239,9 @@ class WishService {
     List<WishModel> latestMine = [];
     List<WishModel> latestReviewed = [];
     StreamSubscription? sub1, sub2;
+    // 遞增序號：listen 回呼是 async，_overlayList 可能亂序完成，
+    // 用序號丟棄過期結果，避免舊 snapshot 蓋掉新資料。
+    int seq1 = 0, seq2 = 0;
 
     List<WishModel> merged() {
       final seen = <String>{};
@@ -258,10 +261,13 @@ class WishService {
             .snapshots()
             .listen(
               (snap) async {
-                latestMine = await _overlayList(snap.docs
+                final ticket = ++seq1;
+                final result = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.partnerId == partnerId)
                     .toList());
+                if (ticket != seq1) return; // 已有更新的 snapshot，丟棄過期結果
+                latestMine = result;
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -273,10 +279,13 @@ class WishService {
             .snapshots()
             .listen(
               (snap) async {
-                latestReviewed = await _overlayList(snap.docs
+                final ticket = ++seq2;
+                final result = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.requesterId == partnerId)
                     .toList());
+                if (ticket != seq2) return; // 已有更新的 snapshot，丟棄過期結果
+                latestReviewed = result;
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -295,6 +304,8 @@ class WishService {
     List<WishModel> latestMine = [];
     List<WishModel> latestTheirs = [];
     StreamSubscription? sub1, sub2;
+    // 同 watchFulfilledWishes：以序號防止過期的 overlay 結果蓋掉新資料。
+    int seq1 = 0, seq2 = 0;
 
     List<WishModel> merged() {
       final seen = <String>{};
@@ -313,10 +324,13 @@ class WishService {
             .snapshots()
             .listen(
               (snap) async {
-                latestMine = await _overlayList(snap.docs
+                final ticket = ++seq1;
+                final result = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.partnerId == partnerId)
                     .toList());
+                if (ticket != seq1) return; // 已有更新的 snapshot，丟棄過期結果
+                latestMine = result;
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
@@ -327,10 +341,13 @@ class WishService {
             .snapshots()
             .listen(
               (snap) async {
-                latestTheirs = await _overlayList(snap.docs
+                final ticket = ++seq2;
+                final result = await _overlayList(snap.docs
                     .map(WishModel.fromDoc)
                     .where((w) => w.requesterId == partnerId)
                     .toList());
+                if (ticket != seq2) return; // 已有更新的 snapshot，丟棄過期結果
+                latestTheirs = result;
                 if (!controller.isClosed) controller.add(merged());
               },
               onError: controller.addError,
