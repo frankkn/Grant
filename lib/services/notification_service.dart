@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -28,9 +29,18 @@ final _localNotifications = FlutterLocalNotificationsPlugin();
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 class NotificationService {
-  final _messaging = FirebaseMessaging.instance;
-  final _db = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
+  NotificationService({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
+
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+
+  // 用 getter 延遲取得：避免單元測試一建構本類別就觸碰
+  // FirebaseMessaging.instance（需要 Firebase.initializeApp）。
+  FirebaseMessaging get _messaging => FirebaseMessaging.instance;
+
+  StreamSubscription<User?>? _authSub;
 
   /// Web Push 用的 VAPID 公鑰（可公開，非機密；會隨網頁一起送到瀏覽器）。
   /// 取得方式：Firebase Console → ⚙ 專案設定 → Cloud Messaging →
@@ -89,11 +99,20 @@ class NotificationService {
       });
     }
 
-    // 啟動時嘗試請求權限並註冊 token（使用者未主動關閉才做）。iOS PWA 上瀏覽器
-    // 會忽略「非使用者手勢」觸發的權限請求，故另提供 [enable] 供 UI 按鈕呼叫。
-    if (await _enabledPref()) {
-      await requestPermissionAndRegister();
-    }
+    // 跟著登入狀態同步 token（使用者未主動關閉才做），而不是只在啟動時做一次：
+    // initialize() 只在 main() 執行，啟動當下若尚未登入（新安裝必然如此），
+    // token 會因為沒有 uid 存不進 Firestore，該裝置要等重啟才收得到推播。
+    // iOS PWA 上瀏覽器會忽略「非使用者手勢」觸發的權限請求，
+    // 故另提供 [enable] 供 UI 按鈕呼叫。
+    _authSub?.cancel();
+    _authSub = _auth.authStateChanges().listen((user) async {
+      if (user == null) return;
+      try {
+        if (await _enabledPref()) await requestPermissionAndRegister();
+      } catch (_) {
+        // 同步失敗不影響 app 運作（token refresh 時會再試）
+      }
+    });
 
     _messaging.onTokenRefresh.listen(_saveTokenString);
   }
@@ -129,6 +148,18 @@ class NotificationService {
           .doc(uid)
           .set({'fcmToken': FieldValue.delete()}, SetOptions(merge: true));
     } catch (_) {}
+  }
+
+  /// 登出「前」呼叫：移除 Firestore 上這台裝置的 token 映射
+  /// （登出後就沒有寫自己文件的權限了），已登出的裝置才不會
+  /// 繼續收到另一半的推播。不影響「接收推播」偏好設定。
+  Future<void> clearTokenForCurrentUser() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    await _db
+        .collection('users')
+        .doc(uid)
+        .set({'fcmToken': FieldValue.delete()}, SetOptions(merge: true));
   }
 
   /// 請求通知權限，取得授權後註冊推播 token；回傳是否取得授權。

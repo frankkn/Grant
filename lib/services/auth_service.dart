@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/user_model.dart';
+import 'notification_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -121,6 +122,11 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    // 先清掉這台裝置的 FCM token 再登出（登出後就沒有寫入權限了），
+    // 避免已登出的裝置繼續收到另一半的推播。盡力而為，失敗不擋登出。
+    try {
+      await NotificationService().clearTokenForCurrentUser();
+    } catch (_) {}
     await _googleSignIn.signOut();
     await _auth.signOut();
   }
