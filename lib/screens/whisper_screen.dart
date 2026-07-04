@@ -19,6 +19,10 @@ class WhisperScreen extends StatefulWidget {
 class _WhisperScreenState extends State<WhisperScreen> {
   final _ctrl = TextEditingController();
   final _service = PairService();
+  // 建立一次後快取：stream 放在 build 裡會在每次 setState（選表情、送出）
+  // 時重新訂閱 Firestore，造成載入閃爍與重複讀取計費。
+  late final Stream<List<PostModel>> _postsStream =
+      _service.watchPosts(widget.partnerId);
   String _mood = '';
   bool _sending = false;
 
@@ -61,7 +65,7 @@ class _WhisperScreenState extends State<WhisperScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<PostModel>>(
-              stream: _service.watchPosts(widget.partnerId),
+              stream: _postsStream,
               builder: (context, snap) {
                 if (!snap.hasData) {
                   return const Center(child: CircularProgressIndicator());
