@@ -1,116 +1,122 @@
+<div align="right">
+
+**English** | [繁體中文](README.zh-TW.md)
+
+</div>
+
 # Grant 💝
 
 [![Version](https://img.shields.io/badge/version-v1.16.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.16.0)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
-一款專為情侶設計的許願 App，讓你用心動指數和理由說服另一半實現你的願望。
+A wish-making app for couples — pitch your wish with a heart-flutter rating and your best reasons, and convince your other half to make it come true.
 
 ---
 
-## 如何使用
+## Getting Started
 
-### Android 安裝
-1. 下載 [app-grant.apk（最新版）](https://github.com/frankkn/Grant/releases/latest/download/app-grant.apk)
-2. 在手機「設定」→「安全性」→ 開啟「**允許安裝不明來源的應用程式**」
-3. 點開下載的 APK 並安裝
-4. 開啟 Grant，註冊帳號或用 Google 登入
+### Android
+1. Download [app-grant.apk (latest)](https://github.com/frankkn/Grant/releases/latest/download/app-grant.apk)
+2. On your phone, go to Settings → Security → enable "**Allow installation from unknown sources**"
+3. Open the downloaded APK and install it
+4. Launch Grant, then sign up or sign in with Google
 
-### iOS（加入主畫面）
-1. 用 **Safari** 開啟 [Grant 網頁版](https://grant-45f5c.web.app)
-2. 點下方中間的「**分享**」按鈕 ↑
-3. 滑動選單，選「**加入主畫面**」
-4. 點右上角「**新增**」→ 桌面出現 Grant 圖示，用法與 App 相同
+### iOS (Add to Home Screen)
+1. Open the [Grant web app](https://grant-45f5c.web.app) in **Safari**
+2. Tap the "**Share**" button at the bottom center ↑
+3. Scroll through the menu and choose "**Add to Home Screen**"
+4. Tap "**Add**" in the top-right corner → a Grant icon appears on your home screen and works just like a native app
 
-### Web 版
-直接用瀏覽器開啟：[https://grant-45f5c.web.app](https://grant-45f5c.web.app)
+### Web
+Open it directly in your browser: [https://grant-45f5c.web.app](https://grant-45f5c.web.app)
 
 ---
 
-## 畫面預覽
+## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/home.png" width="32%" alt="首頁" />
+  <img src="docs/screenshots/home.png" width="32%" alt="Home" />
   &nbsp;&nbsp;
-  <img src="docs/screenshots/make_a_wish.png" width="32%" alt="許願頁" />
+  <img src="docs/screenshots/make_a_wish.png" width="32%" alt="Make a wish" />
 </p>
 
 ---
 
-## 功能
+## Features
 
-### 帳號
-- Email 註冊 / 登入
-- Google 帳號登入
-- 首次登入設定暱稱
-- 登入狀態自動保留
+### Account
+- Email sign-up / sign-in
+- Google sign-in
+- Set a nickname on first login
+- Login state persists automatically
 
-### 情侶配對
-- 生成 6 碼配對碼（10 分鐘有效）
-- 輸入另一半的配對碼完成配對
-- 設定頁面可解除配對
+### Couple Pairing
+- Generate a 6-digit pairing code (valid for 10 minutes)
+- Enter your partner's code to pair up
+- Unpair anytime from the Settings page
 
-### 許願系統（配對後）
-- 送出許願：填寫願望、費用參考、心動指數（❤️ x5）、願望類別、商品網址、商品描述、說服理由、希望日期
-- 選擇「**公開許願**」或「**秘密許願**」：秘密許願在解鎖日前，另一半只看到神秘提示，不知道內容
-- 願望類別（約會 / 禮物 / 吃飯 / 旅行 / 小事 / 撒嬌 / 其他），可依類別篩選清單
-- 查看自己的許願清單，可編輯（審核中）或刪除
-- 點入任一許願查看完整詳情與審核結果
-- 審核另一半的許願：通過、**修改提案**（協商）或駁回，可附上回覆
-  - 修改提案：填寫條件送出，許願者可接受或放棄
-- 查看已審核的許願記錄，可依類別篩選
-- 通過的願望可標記「已實現」並附感謝話
-- **回憶牆**：分「時間軸 / 統計」兩個分頁
-  - 時間軸：所有已實現願望的時間軸
-  - 統計：實現率、你 vs 對方各許幾個與最愛類別、類別排行、平均心動指數、願望狀態分佈
+### Wish System (after pairing)
+- Submit a wish with details: the wish itself, estimated cost, heart-flutter rating (❤️ x5), category, product URL, product description, persuasive reasons, and desired date
+- Choose between a "**public wish**" and a "**secret wish**": before the unlock date, your partner only sees a mysterious hint — not the content
+- Wish categories (Date / Gift / Food / Travel / Little Things / Affection / Other), with category filtering on lists
+- View your own wish list; edit (while pending) or delete
+- Tap any wish for full details and review results
+- Review your partner's wishes: approve, **counter-propose** (negotiate), or reject — with an optional reply
+  - Counter-proposal: submit your conditions; the wisher can accept or withdraw
+- Browse reviewed wish history, filterable by category
+- Mark approved wishes as "fulfilled" with a thank-you note
+- **Memory Wall** with two tabs: "Timeline / Stats"
+  - Timeline: a timeline of every fulfilled wish
+  - Stats: fulfillment rate, wish counts and favorite categories for you vs. your partner, category rankings, average heart-flutter rating, and wish status distribution
 
-### 紀念日（配對後）
-- 在設定頁管理紀念日，支援「在一起 / 生日 / 自訂」三種類型，雙方皆可編輯
-- 首頁顯示最近一個紀念日倒數；「在一起」類型同時顯示已在一起的天數
-- 紀念日當天自動推播提醒雙方
+### Anniversaries (after pairing)
+- Manage anniversaries on the Settings page, with three types: "Together / Birthday / Custom" — editable by both partners
+- The home page shows a countdown to the nearest anniversary; the "Together" type also shows how many days you've been together
+- Both partners get an automatic push notification on the day itself
 
-### 悄悄話（配對後）
-- 聊天式的動態牆，傳訊息給另一半並可附上心情 emoji
-- 保留完整歷史，首頁顯示對方最新一則
-- 對方傳來悄悄話時即時推播
+### Whispers (after pairing)
+- A chat-style feed for sending messages to your partner, with an optional mood emoji
+- Full history is kept; the home page shows your partner's latest whisper
+- Instant push notification when your partner sends one
 
-### 通知
-- 送出許願、審核結果、協商提案、新悄悄話時，另一半立即收到推播
-- 支援 Android 與 網頁／PWA（含 iOS 加入主畫面後）；iOS PWA 需先在設定頁「**推播通知**」手動開啟一次權限
-- 秘密許願通知不透露內容（顯示「🔒 有個秘密心願在等你…」）
-- 神秘心願解鎖卡：首頁提示即將／剛解鎖的秘密願望（不洩漏內容）
-- 紀念日當天與秘密願望解鎖日由後端每日排程（09:00）自動推播
+### Notifications
+- Your partner is notified instantly when you submit a wish, post a review result, send a counter-proposal, or send a whisper
+- Supported on Android and Web/PWA (including iOS after adding to home screen); on iOS PWA you need to grant permission once via "**Push Notifications**" on the Settings page
+- Secret-wish notifications never reveal the content (they show "🔒 A secret wish is waiting for you…")
+- Mystery wish unlock cards: the home page hints at secret wishes that are about to unlock or just unlocked (without spoiling the content)
+- Anniversary-day and secret-wish-unlock notifications are sent automatically by a daily backend job (09:00)
 
-### 其他
-- **深色模式**：設定頁「外觀」可切換 跟隨系統 / 淺色 / 深色，並記住偏好
-- 背景音樂（設定頁可調整音量）
-- 新版本自動提示更新（Web 版）
+### Other
+- **Dark mode**: switch between System / Light / Dark under "Appearance" in Settings; your preference is remembered
+- Background music (volume adjustable in Settings)
+- Automatic update prompt when a new version is available (Web)
 
 ---
 
-## 技術架構
+## Tech Stack
 
-- **框架**：Flutter（支援 Android、Web）
-- **後端**：Firebase（Authentication、Cloud Firestore）
-- **推播通知**：Firebase Cloud Messaging + Railway 後端
-- **登入**：Firebase Auth Email/Password + Google Sign-In
+- **Framework**: Flutter (Android and Web)
+- **Backend**: Firebase (Authentication, Cloud Firestore)
+- **Push notifications**: Firebase Cloud Messaging + a Railway-hosted backend
+- **Sign-in**: Firebase Auth Email/Password + Google Sign-In
 
-## 開發環境
+## Development Environment
 
 - Flutter 3.32+
 - Dart 3.8+
 - Android SDK 35
 - Firebase project: `grant-45f5c`
 
-## 本地執行
+## Running Locally
 
 ```bash
-# 安裝依賴
+# Install dependencies
 flutter pub get
 
-# 執行 Android 模擬器
+# Run on the Android emulator
 flutter run -d emulator-5554
 
-# 執行 Web（Chrome）
+# Run on Web (Chrome)
 flutter run -d chrome --web-port 5000
 
 # Build Android APK
@@ -119,32 +125,32 @@ flutter build apk --debug
 
 ---
 
-## 版本資訊
+## Changelog
 
-| 版本 | 日期 | 更新內容 |
+| Version | Date | Changes |
 |------|------|---------|
-| v1.16.0 | 2026-07-05 | 錯誤修正：修正編輯「日期已過」的願望時日期選擇器閃退；登入後即時同步推播 token（新安裝首次登入就能收到通知），登出時一併移除、已登出的裝置不再收到對方推播；修正配對文件 createdAt 被重複覆寫、回憶牆資料在快速連續更新下可能短暫顯示舊內容的競態；悄悄話頁改用快取串流，減少重複讀取與畫面閃爍 |
-| v1.15.1 | 2026-06-11 | 首頁右上角設定旁新增喇叭按鈕，一鍵靜音／開啟聲音，毋須進設定頁調音量（靜音會記住原音量，開啟時還原，從未開過聲音則預設 50）；審核願望時若當下忘了寫回覆，通過後仍可補寫／修改給許願者的回覆內容（不可改成駁回） |
-| v1.15.0 | 2026-06-10 | 設定頁推播通知改為開關：可看出目前開啟／關閉／被系統封鎖，並能自行關閉接收（移除裝置 token，不再收推播）；修正紀念日無法刪除的問題（單筆異常資料不再導致整批增刪失效）；紀念日文字改為「在一起第 N 天，距離 名稱(月/日) 還有 X 天」並加上日期；首頁版面重整——上方最多顯示 3 個紀念日（越新越上、可設定多個），悄悄話依紀念日數量放在紀念日下方或按鈕下方，按鈕改為固定錨點不再隨提示數量或載入而跑版；修正秘密願望的審核／協商推播內文空白、註冊需填暱稱；效能與穩定性：合併重複的 Firestore 訂閱、快取秘密願望內容讀取、強化資料解析容錯 |
-| v1.14.0 | 2026-06-10 | 修正悄悄話心情 emoji 在網頁／PWA 上首次載入會變灰階線條的問題——心情選擇列、訊息泡泡、首頁最新悄悄話 banner 改用內建彩色小圖，不再依賴瀏覽器字型即時下載；「我的許願」中已通過／已駁回的願望不再顯示編輯與刪除鈕（原本刪除鈕會誤顯示、按下卻無效），刪除失敗也會明確提示 |
-| v1.13.0 | 2026-06-10 | 開啟網頁／PWA（含 iPhone 加入主畫面）的推播通知——過去只有 Android 收得到，現在 iOS PWA 在設定頁「推播通知」開啟一次權限後，也能收到悄悄話與許願等推播（新增 Web Push 金鑰、FCM service worker 與手勢觸發的權限請求）；修正「審核許願」分頁在沒有待審願望時一直卡在「載入中…」、無法收斂為「目前沒有待審核的許願」的問題 |
-| v1.12.0 | 2026-06-09 | 秘密心願到解鎖時間時，紅點、解鎖提示與審核清單會自動更新，毋須重開 App；進一步最佳化首頁即時資料訂閱（審核紅點與使用者資料共用串流），減少重複讀取與紅點閃爍；首頁筆記本按鈕垂直位置微調；移除未使用的程式碼 |
-| v1.11.0 | 2026-06-08 | 穩定性與細節修正：修正取消「已實現」後感謝話仍殘留顯示、解除配對時若對方已重新配對會整個失敗的問題；強化願望狀態解析容錯（單筆異常資料不再導致整個清單載入失敗）；最佳化即時資料訂閱，減少不必要的讀取與畫面閃爍；首頁筆記本按鈕垂直位置調回正中（50%） |
-| v1.10.2 | 2026-06-07 | 全新安裝預設改為淺色主題（原本跟隨系統，設定頁仍可自由切換）；首頁筆記本按鈕垂直位置微調至 51%（原本 52%） |
-| v1.10.1 | 2026-06-06 | 介面微調：首頁筆記本按鈕縮窄並收進筆記本範圍內（寬度、間距、垂直內距調整），整體版面更協調 |
-| v1.10.0 | 2026-06-06 | 隱私與穩定性強化：秘密許願內容改存於受保護的子集合，解鎖日前另一半完全讀不到（資料庫規則層把關，非僅畫面隱藏）；僅「已通過」的願望可標記為已實現；修正秘密願望解鎖推播的時區誤差（避免提早一天）、2/29 紀念日在平年不會提醒、解鎖倒數天數顯示；改善首次登入推播 token 寫入容錯，以及後端每日推播查詢效能 |
-| v1.9.0 | 2026-06-06 | 安全性與穩定性強化：推播改為僅能發送給「目前的伴侶」（後端授權，防止濫發通知）；配對流程更健壯——配對成功後自動清除殘留配對碼、後端每日清理過期配對碼、錯誤回應更一致；修正網路／閘道異常時顯示技術性錯誤訊息的問題，改為友善提示 |
-| v1.8.0 | 2026-06-06 | 安全性強化：推播與配對改由後端驗證身分（Firebase ID Token），新增 Firestore 安全規則限制越權讀寫；配對流程改由後端原子處理，更穩定可靠；修正多處頁面資源未釋放與非同步狀態的潛在 crash、強化使用者資料解析容錯 |
-| v1.7.0 | 2026-06-05 | 回憶牆新增「統計」分頁（實現率、你 vs 對方、類別排行、平均心動指數、狀態分佈）；新增深色模式（設定頁外觀切換、記住偏好）；日期格式本地化為「2026年6月5日」 |
-| v1.6.0 | 2026-06-05 | 新增紀念日倒數（在一起／生日／自訂，首頁倒數橫幅）、悄悄話動態牆（聊天式留言＋心情）、神秘心願解鎖卡；推播補齊審核結果／協商提案／新悄悄話，後端新增每日排程推播（紀念日當天、秘密願望解鎖日） |
-| v1.5.1 | 2026-06-02 | 修正首頁按鈕點擊未觸發背景音樂（Web autoplay policy 導致 GestureDetector 被子層按鈕攔截） |
-| v1.5.0 | 2026-06-02 | 修正配對防護（已配對者不能重複配對，避免單向配對孤兒）、願望與回憶牆依當前對象正確篩選、秘密許願不再卡住審核紅點、「記住我」接上登入持久化、回憶牆時間軸顯示修正；新增 12 個單元測試 |
-| v1.4.0 | 2026-06-02 | 篩選改為可折疊面板（類別 + 狀態雙篩選，收起時顯示摘要）；修正公開/秘密許願卡片高度不一致、修正類別篩選 chip 被截斷問題 |
-| v1.3.0 | 2026-06-02 | 新增許願協商流程（修改提案 / 接受 / 放棄）、願望類別分類與篩選、公開 / 秘密許願模式、回憶牆類別統計；修正類別篩選已審核許願時的 crash |
-| v1.2.4 | 2026-06-01 | 通過願望新增「已實現」勾選狀態，可勾選或取消並同步保存 |
-| v1.2.3 | 2026-06-01 | 新增設定頁修改暱稱功能；修正 PWA 更新提示機制 |
-| v1.2.2 | 2026-05-31 | APK 體積大幅縮小（約 204MB → 56MB）、下載更快；改用固定簽章，往後更新可直接覆蓋免重裝 |
-| v1.2.1 | 2026-05-31 | 配對狀態移除「狀態：」前綴、網頁改為隨版本 tag 自動部署 |
-| v1.2.0 | 2026-05-31 | 首頁改版（三顆筆記本按鈕）、配對狀態顯示對方名字、待審核願望數字提示（首頁與審核分頁）、寬螢幕響應式版面、設定頁顯示版本號 |
-| v1.1.0 | 2026-05-30 | 修復送出願望按鈕被鍵盤遮住的問題、新增送出成功彈窗、iOS 非 Safari 瀏覽器提示、APK 改名為 app-grant.apk、GitHub Actions 自動發布 |
-| v1.0.0 | 2026-05-30 | 首次發布：情侶配對、許願系統、推播通知、背景音樂、Web 版上線 |
+| v1.16.0 | 2026-07-05 | Bug fixes: fixed a date-picker crash when editing a wish whose date had already passed; push token now syncs immediately after login (fresh installs receive notifications from the very first login) and is removed on logout so signed-out devices no longer receive the partner's pushes; fixed the pairing document's createdAt being overwritten repeatedly, and a race where the Memory Wall could briefly show stale data during rapid consecutive updates; the Whispers page now uses a cached stream, reducing duplicate reads and screen flicker |
+| v1.15.1 | 2026-06-11 | Added a speaker button next to Settings in the top-right of the home page for one-tap mute/unmute without opening Settings (muting remembers the previous volume and restores it on unmute; defaults to 50 if sound was never enabled); when reviewing a wish, a reply forgotten at approval time can still be added or edited afterwards (cannot be changed into a rejection) |
+| v1.15.0 | 2026-06-10 | Push notifications in Settings are now a toggle: shows whether they are on, off, or blocked by the system, and lets you opt out (removes the device token so no more pushes are received); fixed anniversaries that could not be deleted (a single corrupt record no longer breaks batch add/delete); anniversary text reworded to "Day N together, X days until Name (MM/DD)" with the date included; home page layout overhaul — up to 3 anniversaries shown at the top (newest first, multiple allowed), whispers placed below the anniversaries or below the buttons depending on how many there are, and the buttons are now anchored so they no longer shift with hint counts or loading; fixed blank notification text for secret-wish review/negotiation pushes and made the nickname required at sign-up; performance and stability: merged duplicate Firestore subscriptions, cached secret-wish content reads, and hardened data-parsing fault tolerance |
+| v1.14.0 | 2026-06-10 | Fixed whisper mood emoji rendering as grayscale outlines on first load in Web/PWA — the mood picker row, message bubbles, and the home page's latest-whisper banner now use bundled color images instead of relying on on-the-fly browser font downloads; approved/rejected wishes in "My Wishes" no longer show edit and delete buttons (the delete button used to appear erroneously and do nothing when tapped), and failed deletions now show a clear error |
+| v1.13.0 | 2026-06-10 | Enabled push notifications for Web/PWA (including iPhone Add to Home Screen) — previously Android-only; iOS PWA users can now receive whisper and wish pushes after granting permission once via "Push Notifications" in Settings (added a Web Push key, an FCM service worker, and a gesture-triggered permission request); fixed the "Review Wishes" tab getting stuck on "Loading…" instead of settling on "No wishes pending review" when there was nothing to review |
+| v1.12.0 | 2026-06-09 | When a secret wish reaches its unlock time, the red badge, unlock hint, and review list now update automatically without restarting the app; further optimized the home page's realtime subscriptions (review badge and user data share a stream), reducing duplicate reads and badge flicker; fine-tuned the vertical position of the home page notebook buttons; removed unused code |
+| v1.11.0 | 2026-06-08 | Stability and polish: fixed the thank-you note lingering on screen after un-marking a wish as "fulfilled", and unpairing failing entirely when the partner had already re-paired; hardened wish-status parsing (a single corrupt record no longer breaks the whole list); optimized realtime subscriptions to cut unnecessary reads and screen flicker; home page notebook button moved back to dead center vertically (50%) |
+| v1.10.2 | 2026-06-07 | Fresh installs now default to the light theme (previously followed the system; still switchable in Settings); home page notebook button nudged to 51% vertically (was 52%) |
+| v1.10.1 | 2026-06-06 | UI polish: the home page notebook buttons are narrower and tucked within the notebook's bounds (width, spacing, and vertical padding adjusted) for a more balanced layout |
+| v1.10.0 | 2026-06-06 | Privacy and stability hardening: secret-wish content moved into a protected subcollection so the partner cannot read it at all before the unlock date (enforced by database rules, not just hidden in the UI); only "approved" wishes can be marked as fulfilled; fixed a timezone offset in secret-wish unlock pushes (no more firing a day early), Feb 29 anniversaries not reminding in non-leap years, and the unlock countdown display; improved first-login push-token write resilience and the backend's daily push query performance |
+| v1.9.0 | 2026-06-06 | Security and stability hardening: pushes can now only be sent to your "current partner" (backend-authorized, preventing notification abuse); more robust pairing flow — leftover pairing codes are cleared automatically after a successful pairing, expired codes are cleaned up daily on the backend, and error responses are more consistent; technical error messages shown during network/gateway failures replaced with friendly ones |
+| v1.8.0 | 2026-06-06 | Security hardening: push and pairing requests are now identity-verified on the backend (Firebase ID Token), with new Firestore security rules blocking unauthorized reads/writes; the pairing flow is handled atomically by the backend for greater reliability; fixed potential crashes from unreleased page resources and async state in several places, and hardened user-data parsing |
+| v1.7.0 | 2026-06-05 | Added a "Stats" tab to the Memory Wall (fulfillment rate, you vs. your partner, category rankings, average heart-flutter rating, status distribution); added dark mode (Appearance switcher in Settings with remembered preference); localized date formatting to "2026年6月5日" |
+| v1.6.0 | 2026-06-05 | Added anniversary countdowns (Together / Birthday / Custom, with a countdown banner on the home page), the Whispers feed (chat-style messages + moods), and mystery wish unlock cards; pushes now cover review results, counter-proposals, and new whispers, and the backend gained daily scheduled pushes (anniversary days and secret-wish unlock days) |
+| v1.5.1 | 2026-06-02 | Fixed home page button taps not triggering the background music (Web autoplay policy caused the GestureDetector to be intercepted by child buttons) |
+| v1.5.0 | 2026-06-02 | Fixed pairing safeguards (already-paired users can no longer pair again, preventing one-sided pairing orphans), wishes and the Memory Wall now filter correctly by current partner, secret wishes no longer leave the review badge stuck, "Remember me" wired up to login persistence, and Memory Wall timeline display fixes; added 12 unit tests |
+| v1.4.0 | 2026-06-02 | Filters redesigned as a collapsible panel (dual category + status filters, with a summary shown when collapsed); fixed inconsistent card heights between public and secret wishes and category filter chips being truncated |
+| v1.3.0 | 2026-06-02 | Added the wish negotiation flow (counter-proposal / accept / withdraw), wish categories with filtering, public / secret wish modes, and Memory Wall category stats; fixed a crash when filtering reviewed wishes by category |
+| v1.2.4 | 2026-06-01 | Approved wishes gained a "fulfilled" checkbox that can be toggled and is saved in sync |
+| v1.2.3 | 2026-06-01 | Added nickname editing on the Settings page; fixed the PWA update-prompt mechanism |
+| v1.2.2 | 2026-05-31 | Dramatically reduced APK size (about 204MB → 56MB) for faster downloads; switched to a fixed signing key so future updates install over the existing app without reinstalling |
+| v1.2.1 | 2026-05-31 | Removed the "Status:" prefix from the pairing status; web deployment now happens automatically per version tag |
+| v1.2.0 | 2026-05-31 | Home page redesign (three notebook buttons), pairing status shows the partner's name, pending-review wish count badges (home page and review tab), responsive layout for wide screens, and version number shown on the Settings page |
+| v1.1.0 | 2026-05-30 | Fixed the submit-wish button being hidden by the keyboard, added a success popup on submission, added a hint for non-Safari browsers on iOS, renamed the APK to app-grant.apk, and set up automated releases via GitHub Actions |
+| v1.0.0 | 2026-05-30 | Initial release: couple pairing, the wish system, push notifications, background music, and the Web version |
