@@ -6,7 +6,7 @@
 
 # Grant 💝
 
-[![Version](https://img.shields.io/badge/version-v1.16.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.16.0)
+[![Version](https://img.shields.io/badge/version-v1.17.0-pink)](https://github.com/frankkn/Grant/releases/tag/v1.17.0)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web-blue)](https://grant-45f5c.web.app)
 
 A wish-making app for couples — pitch your wish with a heart-flutter rating and your best reasons, and convince your other half to make it come true.
@@ -97,7 +97,7 @@ Open it directly in your browser: [https://grant-45f5c.web.app](https://grant-45
 
 - **Framework**: Flutter (Android and Web)
 - **Backend**: Firebase (Authentication, Cloud Firestore)
-- **Push notifications**: Firebase Cloud Messaging + a Railway-hosted backend
+- **Push notifications**: Firebase Cloud Messaging + a Google Cloud Run backend
 - **Sign-in**: Firebase Auth Email/Password + Google Sign-In
 
 ## Development Environment
@@ -129,6 +129,7 @@ flutter build apk --debug
 
 | Version | Date | Changes |
 |------|------|---------|
+| v1.17.0 | 2026-07-21 | Infrastructure: migrated the push-notification backend from Render to Google Cloud Run, with the daily anniversary / secret-wish-unlock pushes now triggered by Cloud Scheduler at 09:00 (Asia/Taipei); no user-facing changes. Docs: the README is now bilingual (English / 繁體中文) |
 | v1.16.0 | 2026-07-05 | Bug fixes: fixed a date-picker crash when editing a wish whose date had already passed; push token now syncs immediately after login (fresh installs receive notifications from the very first login) and is removed on logout so signed-out devices no longer receive the partner's pushes; fixed the pairing document's createdAt being overwritten repeatedly, and a race where the Memory Wall could briefly show stale data during rapid consecutive updates; the Whispers page now uses a cached stream, reducing duplicate reads and screen flicker |
 | v1.15.1 | 2026-06-11 | Added a speaker button next to Settings in the top-right of the home page for one-tap mute/unmute without opening Settings (muting remembers the previous volume and restores it on unmute; defaults to 50 if sound was never enabled); when reviewing a wish, a reply forgotten at approval time can still be added or edited afterwards (cannot be changed into a rejection) |
 | v1.15.0 | 2026-06-10 | Push notifications in Settings are now a toggle: shows whether they are on, off, or blocked by the system, and lets you opt out (removes the device token so no more pushes are received); fixed anniversaries that could not be deleted (a single corrupt record no longer breaks batch add/delete); anniversary text reworded to "Day N together, X days until Name (MM/DD)" with the date included; home page layout overhaul — up to 3 anniversaries shown at the top (newest first, multiple allowed), whispers placed below the anniversaries or below the buttons depending on how many there are, and the buttons are now anchored so they no longer shift with hint counts or loading; fixed blank notification text for secret-wish review/negotiation pushes and made the nickname required at sign-up; performance and stability: merged duplicate Firestore subscriptions, cached secret-wish content reads, and hardened data-parsing fault tolerance |
