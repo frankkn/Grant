@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Grant — Firestore security rules
-// 對應 lib/services 內的實際存取模式。後端（Railway, Admin SDK）會完全略過這些規則。
+// 對應 lib/services 內的實際存取模式。後端（Cloud Run, Admin SDK）會完全略過這些規則。
 service cloud.firestore {
   match /databases/{database}/documents {
 
